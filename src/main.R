@@ -55,7 +55,6 @@ main <- function(cmd_arguments) {
   if (is.null(fasta_content)) {
     return(1)
   }
-  gc()
   log_sep()
   track_time("03 Fasta loaded", "Fasta total length", sum(sapply(fasta_content, length)))
 
@@ -75,7 +74,6 @@ main <- function(cmd_arguments) {
                                                       output_dir = cmd_arguments$output_folder)))
   }
   log_sep()
-  gc()
   track_time("Finished 04 sequence window score", "Fasta total length",
              sum(sapply(fasta_content, length)))
 
@@ -109,7 +107,6 @@ main <- function(cmd_arguments) {
   track_time("Finished 05 merge windows into regions", "Number of windows to merge",
              sum(sapply(repeat_scores, length)))
   remove(repeat_scores)
-  gc()
   # 06 / 14 Split regions into arrays 
   log_step(6, 13, "Identifying individual arrays with repeats")
   date <- Sys.Date()
@@ -145,7 +142,6 @@ main <- function(cmd_arguments) {
                                       kmer = kmer)
         save(out, file = make_temp_path(i, j, k, date, "06_data"))
         remove(out)
-        gc()
       }
       cat(j, "")
       for (k in (region_chunk[j] : (region_chunk[j+1] - 1))) {
@@ -159,7 +155,6 @@ main <- function(cmd_arguments) {
     cat("\n")
   }
   remove(repetitive_regions)
-  gc()
   log_sep()
   write.csv(arrays, make_output_path("_aregarrays.csv"), row.names = FALSE)
 
@@ -222,7 +217,6 @@ main <- function(cmd_arguments) {
       temp_file <- make_temp_path(i, date, "08_data")
       save(arrays_class, file = temp_file)
       remove(arrays_class)
-      gc()
     }
     arrays_t <- NULL
     for (i in seq_along(classes)) {
@@ -236,7 +230,6 @@ main <- function(cmd_arguments) {
                     arrays[which(arrays$class %in% c(names(templates), "none_identified")), ])
     close(pb)
     remove(arrays_t)
-    gc()
   } else {
     log_sep()
   }
@@ -254,7 +247,6 @@ main <- function(cmd_arguments) {
              length(unique(arrays$class)))
 
   remove(arrays_no_representative)
-  gc()
 
   if(nrow(arrays) == 0) {
     cat("No arrays with tandem repeats found under the settings\n")
@@ -369,7 +361,6 @@ main <- function(cmd_arguments) {
           consensus <- consensus_N(alignment, arrays_chr$top_N[i])
           if (length(consensus) != 0) repeats_df$representative <- consensus
           remove(alignment, consensus, repeats_seq, strands)
-          gc()
         }
         # check if short gaps contain the repeat 
         repeats_df <- fill_gaps(repeats_df, array_sequence, arrays_chr$start[i])
@@ -519,7 +510,6 @@ main <- function(cmd_arguments) {
     }
   }
   arrays <- arrays[arrays$repeats_number != 0, ]
-  gc()
   log_sep()
 
   track_time("Finished 11 summarise array info", "Arrays nrow", nrow(arrays))
@@ -585,6 +575,4 @@ main <- function(cmd_arguments) {
     }
     write.csv(times, make_output_path("_run_time.csv"), row.names = FALSE)
   }
-
-  gc()
 }
