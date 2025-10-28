@@ -27,6 +27,10 @@ main <- function(cmd_arguments) {
               paste0(basename(cmd_arguments$fasta_file), suffix))
   }
 
+  make_temp_path <- function(...) {
+    file.path(cmd_arguments$output_folder, paste(..., sep = "_"))
+  }
+
   # Initialize
   log_hash()
   cat("### TRASH: workspace initialised ###", Sys.time(), "\n")
@@ -169,14 +173,15 @@ main <- function(cmd_arguments) {
                                       src_dir = getwd(),
                                       sink_output = FALSE,
                                       kmer = kmer)
-        save(out, file = paste0(cmd_arguments$output_folder, "/", i, "_", j, "_", k, "_", date, "_06_data"))
+        save(out, file = make_temp_path(i, j, k, date, "06_data"))
         remove(out)
         gc()
       }
       cat(j, "")
       for (k in (region_chunk[j] : (region_chunk[j+1] - 1))) {
-        load(paste0(cmd_arguments$output_folder, "/", i, "_", j, "_", k, "_", date, "_06_data"))
-        unlink(paste0(cmd_arguments$output_folder, "/", i, "_", j, "_", k, "_", date, "_06_data"))
+        temp_file <- make_temp_path(i, j, k, date, "06_data")
+        load(temp_file)
+        unlink(temp_file)
         arrays <- rbind(arrays, out)
         remove(out)
       }
@@ -247,14 +252,14 @@ main <- function(cmd_arguments) {
       arrays_class <- arrays[arrays$class == classes[i], ]
       arrays_class$representative <- shift_classes(arrays_class, kmer = 6)
       setTxtProgressBar(pb, getTxtProgressBar(pb) + 1)
-      temp_file <- paste0(cmd_arguments$output_folder, "/", i, "_", date, "_08_data")
+      temp_file <- make_temp_path(i, date, "08_data")
       save(arrays_class, file = temp_file)
       remove(arrays_class)
       gc()
     }
     arrays_t <- NULL
     for (i in seq_along(classes)) {
-      temp_file <- paste0(cmd_arguments$output_folder, "/", i, "_", date, "_08_data")
+      temp_file <- make_temp_path(i, date, "08_data")
       load(temp_file)
       unlink(temp_file)
       arrays_t <- rbind(arrays_t, arrays_class)
@@ -505,16 +510,17 @@ main <- function(cmd_arguments) {
         repeats_df$class <- as.character(repeats_df$class)
         repeats_df$representative <- as.character(repeats_df$representative)
         repeats_df$score_template <- as.numeric(repeats_df$score_template)
-        save(repeats_df, file = paste0(cmd_arguments$output_folder, "/", i, "_", date, "_09_data"))
+        save(repeats_df, file = make_temp_path(i, date, "09_data"))
         remove(repeats_df)
         cat(i, "")
         return(0)
         gc()
       }
       for(i in arrays_chunk_IDs) {
-        if(file.exists(paste0(cmd_arguments$output_folder, "/", i, "_", date, "_09_data"))) {
-          load(paste0(cmd_arguments$output_folder, "/", i, "_", date, "_09_data"))
-          unlink(paste0(cmd_arguments$output_folder, "/", i, "_", date, "_09_data"))
+        temp_file <- make_temp_path(i, date, "09_data")
+        if(file.exists(temp_file)) {
+          load(temp_file)
+          unlink(temp_file)
           if(sum(names(repeats) != names(repeats_df)) > 0) {
           print(paste(i, names(repeats), names(repeats_df)))
           print(str(repeats))
