@@ -1,19 +1,9 @@
 handle_edge_repeat <- function(repeats_df, sequence_vector, sequence_vector_start, template_sequence = "") {
-  # repeats within an array are checked for gaps and for each edge repeat (at least one on each edge,
+  # Repeats within an array are checked for gaps and for each edge repeat (at least one on each edge,
   # but also possible internal gaps), the edge ones are checked for best end position, and if they
   # have a sufficiently high score, potential extra repeat is checked. This check is calculating
   # local similarity
 
-  ### dev settings
-  # sequence_vector_full <- read_fasta_and_list("C:\\Users\\Piotr Włodzimierz\\Documents\\GitHub\\TRASH_dev/testing_fastas/chr5_extraction.fasta")
-  # sequence_vector <- sequence_vector_full[[1]][5051 : 200000]
-  # sequence_vector_start <- 5050 + 1
-
-  # repeats_df_full <- read.csv(file = "C:\\Users\\Piotr Włodzimierz\\Documents\\GitHub\\TRASH_dev\\temp/chr5_extraction.fasta_repeats.csv")
-  # repeats_df <- repeats_df_full#[repeats_df_full$start > 13943869 & repeats_df_full$start < 15189763, ]
-  # repeats_df$representative <- tolower("caagcttcttcttgcttctcaaagctttgatggtgtagtcgtagtccgtatgagtctttgtctttgtatcttctaacaaggatacaatacttaggcttttaagatccgattgcggttctagttgttatactcactcatacacatgacatctagtcatatttgactccaaaacactaac")
-  # template_sequence <- repeats_df$representative[1]
-  ####
   potential_seq_width <- 1.2 # 120% of repeat width will be checked to find the best edge annotation size
 
   if (nrow(repeats_df) < 2) {
@@ -183,20 +173,6 @@ handle_edge_repeat <- function(repeats_df, sequence_vector, sequence_vector_star
 
   repeats_df$width <- repeats_df$end - repeats_df$start + 1
   repeats_df <- repeats_df[repeats_df$width > 2,]
-  # print(nrow(repeats_df))
-
-  ### dev settings
-  # write.csv(repeats_df, "C:/Users/Piotr Włodzimierz\\Documents\\GitHub\\CC-Col\\v2_5s_adjusting/added_repeats_5s.csv")
-
-
-  # repeats_df$start <- repeats_df$start - sequence_vector_start + 1
-  # repeats_df$end <- repeats_df$end - sequence_vector_start + 1
-  # export_gff(annotations.data.frame = repeats_df, output = "C:/Users/Piotr Włodzimierz/Documents/GitHub/TRASH_dev/temp", file.name = "added_repeats_5s.gff",
-  #                     seqid = "chr5_extr_2", source = "TRASH", type = "adjusted_satellites", start = 3, end = 4, score = ".", strand = 5, phase = ".", attributes = ".", 
-  #                     attribute.names = ".")
-
-
-
 
   repeats_df <- repeats_df[c("seqID", "arrayID", "start", "end", "strand", "score", "eval", "width", "class", "representative", "score_template")]
 }
