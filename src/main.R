@@ -41,15 +41,7 @@ main <- function(cmd_arguments) {
   nhmmer_dir <- "nhmmer"
   log_messages <- ""
 
-  # 01 / 14 Start workers
-  # TODO: remove parallelism so that the output hashes are identical
-  cl <- makeCluster(cmd_arguments$cores_no,
-                    homogeneous = TRUE)
-  clusterEvalQ(cl, .libPaths(c(.libPaths(), gsub("src", "R_libs", getwd()))))
-  clusterEvalQ(cl, sink())
-  registerDoParallel(cl)
-
-  # 02 / 14 Settings
+  # Settings
   kmer <- 10
   window_size <- round((cmd_arguments$max_rep_size + kmer) * 1.1)
   report_runtime <- TRUE
@@ -57,7 +49,7 @@ main <- function(cmd_arguments) {
 
   times <- list(time = as.numeric(Sys.time()), event = "Start main function", data_type = "none", data_value = 0)
 
-  # 03 / 14 Load fasta
+  # Load fasta
   log_step(3, 13, paste("Loading the fasta file:", basename(cmd_arguments$fasta_file)))
   fasta_content <- load_and_validate_fasta(cmd_arguments$fasta_file)
   if (is.null(fasta_content)) {
@@ -137,9 +129,7 @@ main <- function(cmd_arguments) {
     for(j in 1 : (length(region_chunk) - 1)) {
       sequence_substring <- fasta_content[[i]][repetitive_regions_chr$starts[region_chunk[j]] : (repetitive_regions_chr$ends[region_chunk[j + 1] - 1])]
       start_adjust <- repetitive_regions_chr$starts[region_chunk[j]] - 1
-      foreach::foreach (k = (region_chunk[j] : (region_chunk[j+1] - 1)),
-                    .export = c("split_and_check_arrays", "extract_kmers", "collapse_kmers", "genomic_bins_starts", "consensus_N", "write_align_read", "seq_win_score_int")) %do% {
-        
+      for (k in (region_chunk[j] : (region_chunk[j+1] - 1))) {
         out <- split_and_check_arrays(start = repetitive_regions_chr$starts[k],
                                       end = repetitive_regions_chr$ends[k],
                                       sequence = sequence_substring[(repetitive_regions_chr$starts[k] - start_adjust) : (repetitive_regions_chr$ends[k] - start_adjust)],
@@ -188,16 +178,16 @@ main <- function(cmd_arguments) {
   }
   track_time("Finished 07 get templates", "Number of templates", length_templates)
 
-  arrays$representative <- foreach::foreach(
-    i = seq_len(nrow(arrays)),
-    .combine = c,
-    .export = c("shift_and_compare", "shift_sequence", "compare_circular",
-                "rev_comp_string", "kmer_hash_score")
-  ) %do% {
+  shifted_representatives <- character(nrow(arrays))
+  for (i in seq_len(nrow(arrays))) {
     setTxtProgressBar(pb, getTxtProgressBar(pb) + 1)
-    if (!inherits(arrays$representative[i], "character")) return("_")
-    return(shift_and_compare(arrays$representative[i], templates))
+    if (!inherits(arrays$representative[i], "character")) {
+      shifted_representatives[i] <- "_"
+    } else {
+      shifted_representatives[i] <- shift_and_compare(arrays$representative[i], templates)
+    }
   }
+  arrays$representative <- shifted_representatives
   track_time("Finished 07 shift representatives and apply templates",
              "Number of templates times nrow arrays", length_templates * nrow(arrays))
 
@@ -225,10 +215,7 @@ main <- function(cmd_arguments) {
   classes <- classes[!(classes %in% c(names(templates), "none_identified"))]
   if (length(classes) != 0) {
     pb <- txtProgressBar(style = 1, min = 0, max = length(classes))
-    foreach::foreach(
-      i = seq_along(classes),
-      .export = c("compare_kmer_grep", "shift_classes", "compare_circular", "rev_comp_string")
-    ) %do% {
+    for (i in seq_along(classes)) {
       arrays_class <- arrays[arrays$class == classes[i], ]
       arrays_class$representative <- shift_classes(arrays_class, kmer = 6)
       setTxtProgressBar(pb, getTxtProgressBar(pb) + 1)
@@ -307,17 +294,10 @@ main <- function(cmd_arguments) {
       sequence_substring <- fasta_content[[chromosome]][arrays_chr$start[array_chunk[j]] : (arrays_chr$end[array_chunk[j + 1] - 1])]
       adjust_start <- arrays_chr$start[array_chunk[j]] - 1
       arrays_chunk_IDs <- array_chunk[j] : (array_chunk[j + 1] - 1)
-      foreach::foreach(
-        i = arrays_chunk_IDs,
-        .combine = rbind,
-        .export = c("find_edge_best_start_end", "handle_edge_repeat", "fill_gaps",
-                    "write_align_read", "consensus_N", "read_and_format_nhmmer",
-                    "handle_overlaps", "handle_gaps", "export_gff", "map_nhmmer",
-                    "map_default", "rev_comp_string")
-      ) %do% {
+      for (i in arrays_chunk_IDs) {
         if (arrays_chr$representative[i] == "") {
           cat(i, "")
-          return(0)
+          next
         }
         array_sequence <- sequence_substring[(arrays_chr$start[i] - adjust_start) : (arrays_chr$end[i] - adjust_start)]
         cat(i, "_ ", sep = "")
@@ -341,23 +321,23 @@ main <- function(cmd_arguments) {
         }
         if (nrow(repeats_df) < 2) {
           cat(i, "")
-          return(0)
+          next
         }
         # add width and class 
         repeats_df$width <- repeats_df$end - repeats_df$start + 1
         repeats_df$class <- arrays_chr$class[i]
-        # Handle overlaps 
+        # Handle overlaps
         repeats_df <- handle_overlaps(repeats_df, overlap_threshold = 0.1)
         if (nrow(repeats_df) < 3) {
           cat(i, "")
-          return(0)
+          next
         }
-        # handle gaps if proper array 
+        # handle gaps if proper array
         repeats_df <- handle_gaps(repeats_df, representative_len = arrays_chr$top_N[i])
-        # Return nothing if handle_gaps removed all repeats 
+        # Skip if handle_gaps removed all repeats
         if (nrow(repeats_df) < 3) {
           cat(i, "")
-          return(0)
+          next
         }
         # Recalculate representative 
         # TODO: Use more repeats for long arrays, this is stringent and good for most arrays, but some deserve a better recalculation
@@ -473,10 +453,9 @@ main <- function(cmd_arguments) {
         # TODO: make sure the edge repeats have their template score recalculated too
 
         remove(repeats_seq)
-        gc()
         if (nrow(repeats_df) < 3) {
           cat(i, "")
-          return(0)
+          next
         }
         repeats_df <- repeats_df[c("seqID", "arrayID", "start", "end", "strand", "score", "eval", "width", "class", "representative", "score_template")]
         repeats_df$seqID <- as.character(repeats_df$seqID)
@@ -493,8 +472,6 @@ main <- function(cmd_arguments) {
         save(repeats_df, file = make_temp_path(i, date, "09_data"))
         remove(repeats_df)
         cat(i, "")
-        return(0)
-        gc()
       }
       for(i in arrays_chunk_IDs) {
         temp_file <- make_temp_path(i, date, "09_data")
@@ -609,6 +586,5 @@ main <- function(cmd_arguments) {
     write.csv(times, make_output_path("_run_time.csv"), row.names = FALSE)
   }
 
-  stopCluster(cl)
   gc()
 }
