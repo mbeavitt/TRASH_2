@@ -1,0 +1,27 @@
+name: trash2
+channels:
+  - conda-forge
+  - bioconda
+  - defaults
+dependencies:
+  # R and core packages
+  - r-base>=4.0
+
+  # External bioinformatics tools
+  - mafft
+  - hmmer
+
+  # R packages from CRAN
+  - r-stringr
+  - r-stringdist
+  - r-seqinr
+  - r-doparallel
+  - r-getopt
+  - r-ape
+
+  # Bioconductor packages
+  - bioconductor-biostrings
+  - r-biocmanager  # For installing msa package via BiocManager::install("msa")
+
+  # Tests
+  - pytest

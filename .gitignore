@@ -5,3 +5,5 @@ src/.Rhistory
 ./.vscode
 ./.VSCodeCounter
 ./lintr
+__pycache__/
+src/arguments.rds
