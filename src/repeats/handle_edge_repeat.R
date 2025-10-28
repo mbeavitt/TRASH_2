@@ -50,8 +50,9 @@ handle_edge_repeat <- function(repeats_df, sequence_vector, sequence_vector_star
       sequence_potential <- rev(sequence_vector[potential_start1 : potential_end1])
       repeats_df$start[left_edges_rep_id[i]] <- repeats_df$end[left_edges_rep_id[i]] - find_edge_best_start_end(sequence_potential, rev(array_representative))
       repeats_df$eval[left_edges_rep_id[i]] <- -1
-      repeats_df$score[left_edges_rep_id[i]] <- adist(repeats_df$representative[left_edges_rep_id[i]], paste0(sequence_vector[(repeats_df$start[left_edges_rep_id[i]] - sequence_vector_start + 1) : potential_end1], collapse = ""))[1, ]  / nchar(repeats_df$representative[left_edges_rep_id[i]]) * 100
-      if (template_sequence != "") repeats_df$score_template[left_edges_rep_id[i]] <- adist(template_sequence, paste0(sequence_vector[(repeats_df$start[left_edges_rep_id[i]] - sequence_vector_start + 1) : potential_end1], collapse = ""))[1, ]  / nchar(template_sequence) * 100
+      seq_str <- extract_sequence_string(sequence_vector, (repeats_df$start[left_edges_rep_id[i]] - sequence_vector_start + 1), potential_end1)
+      repeats_df$score[left_edges_rep_id[i]] <- calculate_edit_distance_score(repeats_df$representative[left_edges_rep_id[i]], seq_str)
+      if (template_sequence != "") repeats_df$score_template[left_edges_rep_id[i]] <- calculate_edit_distance_score(template_sequence, seq_str)
       left_edges[i] <- repeats_df$start[left_edges_rep_id[i]]
       # and test for the new one after it, unless the previous one is already under half length
       if((repeats_df$end[left_edges_rep_id[i]] - repeats_df$start[left_edges_rep_id[i]] + 1) >= (mean_rep_size / 2)) {
@@ -66,8 +67,10 @@ handle_edge_repeat <- function(repeats_df, sequence_vector, sequence_vector_star
           repeats_df <- rbind(repeats_df, repeats_df[left_edges_rep_id[i], ])
           repeats_df$start[nrow(repeats_df)] <- repeats_df$start[left_edges_rep_id[i]] - best_new_start - 1
           repeats_df$end[nrow(repeats_df)] <- repeats_df$start[left_edges_rep_id[i]] -  1
-          repeats_df$score[nrow(repeats_df)] <- adist(repeats_df$representative[left_edges_rep_id[i]], paste0(sequence_vector[repeats_df$start[nrow(repeats_df)] : repeats_df$end[nrow(repeats_df)]], collapse = ""))[1, ]  / nchar(repeats_df$representative[left_edges_rep_id[i]]) * 100
-          if (template_sequence != "") repeats_df$score_template[nrow(repeats_df)] <- adist(template_sequence, paste0(sequence_vector[(repeats_df$start[nrow(repeats_df)] - sequence_vector_start + 1) : (repeats_df$end[nrow(repeats_df)] - sequence_vector_start + 1)], collapse = ""))[1, ]  / nchar(template_sequence) * 100
+          seq_str <- extract_sequence_string(sequence_vector, repeats_df$start[nrow(repeats_df)], repeats_df$end[nrow(repeats_df)])
+          repeats_df$score[nrow(repeats_df)] <- calculate_edit_distance_score(repeats_df$representative[left_edges_rep_id[i]], seq_str)
+          seq_str_adj <- extract_sequence_string(sequence_vector, (repeats_df$start[nrow(repeats_df)] - sequence_vector_start + 1), (repeats_df$end[nrow(repeats_df)] - sequence_vector_start + 1))
+          if (template_sequence != "") repeats_df$score_template[nrow(repeats_df)] <- calculate_edit_distance_score(template_sequence, seq_str_adj)
           left_edges[i] <- repeats_df$start[nrow(repeats_df)]
         }
       }
@@ -82,8 +85,9 @@ handle_edge_repeat <- function(repeats_df, sequence_vector, sequence_vector_star
       sequence_potential <- rev(sequence_vector[potential_start1 : potential_end1])
       repeats_df$start[left_edges_rep_id[i]] <- repeats_df$end[left_edges_rep_id[i]] - find_edge_best_start_end(sequence_potential, array_representative_rev)
       repeats_df$eval[left_edges_rep_id[i]] <- -1
-      repeats_df$score[left_edges_rep_id[i]] <- adist(repeats_df$representative[left_edges_rep_id[i]], paste0(sequence_vector[(repeats_df$start[left_edges_rep_id[i]] - sequence_vector_start + 1) : potential_end1], collapse = ""))[1, ]  / nchar(repeats_df$representative[left_edges_rep_id[i]]) * 100
-      if (template_sequence != "") repeats_df$score_template[left_edges_rep_id[i]] <- adist(template_sequence, paste0(sequence_vector[(repeats_df$start[left_edges_rep_id[i]] - sequence_vector_start + 1) : potential_end1], collapse = ""))[1, ]  / nchar(template_sequence) * 100
+      seq_str <- extract_sequence_string(sequence_vector, (repeats_df$start[left_edges_rep_id[i]] - sequence_vector_start + 1), potential_end1)
+      repeats_df$score[left_edges_rep_id[i]] <- calculate_edit_distance_score(repeats_df$representative[left_edges_rep_id[i]], seq_str)
+      if (template_sequence != "") repeats_df$score_template[left_edges_rep_id[i]] <- calculate_edit_distance_score(template_sequence, seq_str)
       left_edges[i] <- repeats_df$start[left_edges_rep_id[i]]
       # and test for the new one after it, unless the previous one is already under half length
       if((repeats_df$end[left_edges_rep_id[i]] - repeats_df$start[left_edges_rep_id[i]] + 1) >= (mean_rep_size / 2)) {
@@ -98,8 +102,10 @@ handle_edge_repeat <- function(repeats_df, sequence_vector, sequence_vector_star
           repeats_df <- rbind(repeats_df, repeats_df[left_edges_rep_id[i], ])
           repeats_df$start[nrow(repeats_df)] <- repeats_df$start[left_edges_rep_id[i]] - best_new_start - 1
           repeats_df$end[nrow(repeats_df)] <- repeats_df$start[left_edges_rep_id[i]] -  1
-          repeats_df$score[nrow(repeats_df)] <- adist(repeats_df$representative[left_edges_rep_id[i]], paste0(sequence_vector[repeats_df$start[nrow(repeats_df)] : repeats_df$end[nrow(repeats_df)]], collapse = ""))[1, ]  / nchar(repeats_df$representative[left_edges_rep_id[i]]) * 100
-          if (template_sequence != "") repeats_df$score_template[nrow(repeats_df)] <- adist(template_sequence, paste0(sequence_vector[(repeats_df$start[nrow(repeats_df)] - sequence_vector_start + 1) : (repeats_df$end[nrow(repeats_df)] - sequence_vector_start + 1)], collapse = ""))[1, ]  / nchar(template_sequence) * 100
+          seq_str <- extract_sequence_string(sequence_vector, repeats_df$start[nrow(repeats_df)], repeats_df$end[nrow(repeats_df)])
+          repeats_df$score[nrow(repeats_df)] <- calculate_edit_distance_score(repeats_df$representative[left_edges_rep_id[i]], seq_str)
+          seq_str_adj <- extract_sequence_string(sequence_vector, (repeats_df$start[nrow(repeats_df)] - sequence_vector_start + 1), (repeats_df$end[nrow(repeats_df)] - sequence_vector_start + 1))
+          if (template_sequence != "") repeats_df$score_template[nrow(repeats_df)] <- calculate_edit_distance_score(template_sequence, seq_str_adj)
           left_edges[i] <- repeats_df$start[nrow(repeats_df)]
         }
       }
@@ -115,8 +121,9 @@ handle_edge_repeat <- function(repeats_df, sequence_vector, sequence_vector_star
       sequence_potential <- sequence_vector[potential_start2 : potential_end2]
       repeats_df$end[right_edges_rep_id[i]] <- repeats_df$start[right_edges_rep_id[i]] + find_edge_best_start_end(sequence_potential, array_representative)
       repeats_df$eval[right_edges_rep_id[i]] <- -1
-      repeats_df$score[right_edges_rep_id[i]] <- adist(repeats_df$representative[right_edges_rep_id[i]], paste0(sequence_vector[potential_start2 : (repeats_df$end[right_edges_rep_id[i]] - sequence_vector_start + 1)], collapse = ""))[1, ]  / nchar(repeats_df$representative[right_edges_rep_id[i]]) * 100
-      if (template_sequence != "") repeats_df$score_template[right_edges_rep_id[i]] <- adist(template_sequence, paste0(sequence_vector[potential_start2 : (repeats_df$end[right_edges_rep_id[i]] - sequence_vector_start + 1)], collapse = ""))[1, ]  / nchar(template_sequence) * 100
+      seq_str <- extract_sequence_string(sequence_vector, potential_start2, (repeats_df$end[right_edges_rep_id[i]] - sequence_vector_start + 1))
+      repeats_df$score[right_edges_rep_id[i]] <- calculate_edit_distance_score(repeats_df$representative[right_edges_rep_id[i]], seq_str)
+      if (template_sequence != "") repeats_df$score_template[right_edges_rep_id[i]] <- calculate_edit_distance_score(template_sequence, seq_str)
       right_edges[i] <- repeats_df$end[right_edges_rep_id[i]]
       # and test for the new one after it, unless the previous one is already under half length
       if((repeats_df$end[right_edges_rep_id[i]] - repeats_df$start[right_edges_rep_id[i]] + 1) >= (mean_rep_size / 2)) {
@@ -131,8 +138,9 @@ handle_edge_repeat <- function(repeats_df, sequence_vector, sequence_vector_star
           repeats_df <- rbind(repeats_df, repeats_df[right_edges_rep_id[i], ])
           repeats_df$start[nrow(repeats_df)] <- repeats_df$end[right_edges_rep_id[i]] + 1  
           repeats_df$end[nrow(repeats_df)] <- repeats_df$end[right_edges_rep_id[i]] + best_new_end + 1
-          repeats_df$score[nrow(repeats_df)] <- adist(repeats_df$representative[right_edges_rep_id[i]], paste0(sequence_vector[(repeats_df$start[nrow(repeats_df)] - sequence_vector_start + 1) : (repeats_df$end[nrow(repeats_df)] - sequence_vector_start + 1)], collapse = ""))[1, ]  / nchar(repeats_df$representative[right_edges_rep_id[i]]) * 100
-          if (template_sequence != "") repeats_df$score_template[nrow(repeats_df)] <- adist(template_sequence, paste0(sequence_vector[(repeats_df$start[nrow(repeats_df)] - sequence_vector_start + 1) : (repeats_df$end[nrow(repeats_df)] - sequence_vector_start + 1)], collapse = ""))[1, ]  / nchar(template_sequence) * 100
+          seq_str <- extract_sequence_string(sequence_vector, (repeats_df$start[nrow(repeats_df)] - sequence_vector_start + 1), (repeats_df$end[nrow(repeats_df)] - sequence_vector_start + 1))
+          repeats_df$score[nrow(repeats_df)] <- calculate_edit_distance_score(repeats_df$representative[right_edges_rep_id[i]], seq_str)
+          if (template_sequence != "") repeats_df$score_template[nrow(repeats_df)] <- calculate_edit_distance_score(template_sequence, seq_str)
           right_edges[i] <- repeats_df$end[nrow(repeats_df)]
         }
       }
@@ -146,8 +154,9 @@ handle_edge_repeat <- function(repeats_df, sequence_vector, sequence_vector_star
       sequence_potential <- sequence_vector[potential_start2 : potential_end2]
       repeats_df$end[right_edges_rep_id[i]] <- repeats_df$start[right_edges_rep_id[i]] + find_edge_best_start_end(sequence_potential, rev(array_representative_rev))
       repeats_df$eval[right_edges_rep_id[i]] <- -1
-      repeats_df$score[right_edges_rep_id[i]] <- adist(rev_comp_string(repeats_df$representative[right_edges_rep_id[i]]), paste0(sequence_vector[potential_start2 : (repeats_df$end[right_edges_rep_id[i]] - sequence_vector_start + 1)], collapse = ""))[1, ]  / nchar(repeats_df$representative[right_edges_rep_id[i]]) * 100
-      if (template_sequence != "") repeats_df$score_template[right_edges_rep_id[i]] <- adist(rev_comp_string(template_sequence), paste0(sequence_vector[potential_start2 : (repeats_df$end[right_edges_rep_id[i]] - sequence_vector_start + 1)], collapse = ""))[1, ]  / nchar(template_sequence) * 100
+      seq_str <- extract_sequence_string(sequence_vector, potential_start2, (repeats_df$end[right_edges_rep_id[i]] - sequence_vector_start + 1))
+      repeats_df$score[right_edges_rep_id[i]] <- calculate_edit_distance_score(rev_comp_string(repeats_df$representative[right_edges_rep_id[i]]), seq_str)
+      if (template_sequence != "") repeats_df$score_template[right_edges_rep_id[i]] <- calculate_edit_distance_score(rev_comp_string(template_sequence), seq_str)
       right_edges[i] <- repeats_df$end[right_edges_rep_id[i]]
       # and test for the new one after it, unless the previous one is already under half length
       if((repeats_df$end[right_edges_rep_id[i]] - repeats_df$start[right_edges_rep_id[i]] + 1) >= (mean_rep_size / 2)) {
@@ -162,8 +171,9 @@ handle_edge_repeat <- function(repeats_df, sequence_vector, sequence_vector_star
           repeats_df <- rbind(repeats_df, repeats_df[right_edges_rep_id[i], ])
           repeats_df$start[nrow(repeats_df)] <- repeats_df$end[right_edges_rep_id[i]] + 1  # TODO: add or subtract one here?
           repeats_df$end[nrow(repeats_df)] <- repeats_df$end[right_edges_rep_id[i]] + best_new_end + 1
-          repeats_df$score[nrow(repeats_df)] <- adist(rev_comp_string(repeats_df$representative[right_edges_rep_id[i]]), paste0(sequence_vector[(repeats_df$start[nrow(repeats_df)] - sequence_vector_start + 1) : (repeats_df$end[nrow(repeats_df)] - sequence_vector_start + 1)], collapse = ""))[1, ]  / nchar(repeats_df$representative[right_edges_rep_id[i]]) * 100
-          if (template_sequence != "") repeats_df$score_template[nrow(repeats_df)] <- adist(rev_comp_string(template_sequence), paste0(sequence_vector[(repeats_df$start[nrow(repeats_df)] - sequence_vector_start + 1) : (repeats_df$end[nrow(repeats_df)] - sequence_vector_start + 1)], collapse = ""))[1, ]  / nchar(template_sequence) * 100
+          seq_str <- extract_sequence_string(sequence_vector, (repeats_df$start[nrow(repeats_df)] - sequence_vector_start + 1), (repeats_df$end[nrow(repeats_df)] - sequence_vector_start + 1))
+          repeats_df$score[nrow(repeats_df)] <- calculate_edit_distance_score(rev_comp_string(repeats_df$representative[right_edges_rep_id[i]]), seq_str)
+          if (template_sequence != "") repeats_df$score_template[nrow(repeats_df)] <- calculate_edit_distance_score(rev_comp_string(template_sequence), seq_str)
           right_edges[i] <- repeats_df$end[nrow(repeats_df)]
         }
       }

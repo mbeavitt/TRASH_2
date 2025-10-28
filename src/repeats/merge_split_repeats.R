@@ -3,8 +3,6 @@ merge_split_repeats <- function(repeats_df, repeats_seq, sequence_substring,
                                 score_min_to_merge = 30, size_max_to_merge = 1.0) {
   # Correct repeats split into two by nhmmer
   # Merge adjacent repeats if they have poor scores individually but good score combined
-  costs <- list(insertions = 1, deletions = 1, substitutions = 1)
-  rep_len <- nchar(repeats_df$representative[1])
 
   i_r <- 1
   while(i_r < nrow(repeats_df)) {
@@ -24,7 +22,7 @@ merge_split_repeats <- function(repeats_df, repeats_seq, sequence_substring,
         } else {
           rev_comp_string(repeats_df$representative[1])
         }
-        new_score <- adist(rep_to_compare, merged_seq, costs)[1, ] / rep_len * 100
+        new_score <- calculate_edit_distance_score(rep_to_compare, merged_seq)
 
         if (new_score < min(repeats_df$score[i_r:(i_r + 1)])) {
           # Merge the two repeats
@@ -33,17 +31,14 @@ merge_split_repeats <- function(repeats_df, repeats_seq, sequence_substring,
           repeats_seq <- repeats_seq[-(i_r + 1)]
 
           # Update sequence and score
-          repeats_seq[i_r] <- paste0(sequence_substring[(repeats_df$start[i_r] - adjust_start):
-                                                        (repeats_df$end[i_r] - adjust_start)],
-                                    collapse = "")
+          repeats_seq[i_r] <- extract_sequence_string(sequence_substring, (repeats_df$start[i_r] - adjust_start), (repeats_df$end[i_r] - adjust_start))
           repeats_df$score[i_r] <- new_score
 
           # Update template score if applicable
           if (array_class %in% names(templates)) {
             template <- paste(templates[[which(names(templates) == array_class)]], collapse = "")
             temp_to_compare <- if (both_plus) template else rev_comp_string(template)
-            repeats_df$score_template[i_r] <- adist(temp_to_compare, repeats_seq[i_r])[1, ] /
-                                              nchar(template) * 100
+            repeats_df$score_template[i_r] <- calculate_edit_distance_score(temp_to_compare, repeats_seq[i_r])
           }
         }
       }

@@ -13,9 +13,9 @@ fill_gaps <- function(repeat_table, fasta_content, array_start) {
     if (gap_len %in% one_rep_range) {
       new_start <- repeat_table$end[i - 1] + 1
       new_end <- repeat_table$start[i] - 1
-      check_seq_fw <- paste0(fasta_content[(new_start - array_start + 1) : (new_end - array_start + 1)], collapse = "")
+      check_seq_fw <- extract_sequence_string(fasta_content, (new_start - array_start + 1), (new_end - array_start + 1))
       check_seq_rv <- rev_comp_string(check_seq_fw)
-      score <- adist(repeat_table$representative[i], c(check_seq_fw, check_seq_rv))[1, ] / nchar(repeat_table$representative[i])
+      score <- calculate_edit_distance_score(repeat_table$representative[i], c(check_seq_fw, check_seq_rv)) / 100
       if (sum(score < max_score) > 0) {
         repeat_table[nrow(repeat_table) + 1, ] <- list(seqID = repeat_table$seqID[i], 
                                                        arrayID = repeat_table$arrayID[i],
