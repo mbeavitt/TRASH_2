@@ -59,33 +59,13 @@ main <- function(cmd_arguments) {
 
   # 03 / 14 Load fasta
   log_step(3, 13, paste("Loading the fasta file:", basename(cmd_arguments$fasta_file)))
-  fasta_content <- read_fasta_and_list(cmd_arguments$fasta_file)
+  fasta_content <- load_and_validate_fasta(cmd_arguments$fasta_file)
+  if (is.null(fasta_content)) {
+    return(1)
+  }
   gc()
   log_sep()
   track_time("03 Fasta loaded", "Fasta total length", sum(sapply(fasta_content, length)))
-  if(length(fasta_content) == 0) {
-    warning("Fasta could no be read or is empty")
-    return(1)
-  }
-
-  if (length(names(fasta_content)) != length(unique(names(fasta_content)))) {
-    msg <- paste0("\nWARNING: Sequence names in the ", basename(cmd_arguments$fasta_file),
-                  " fasta file are not unique \n They were appended to avoid assignment errors \n")
-    warning(msg)
-    cat(msg, "\n", "Adjustments made: \n", sep = "")
-
-    fasta_names <- names(fasta_content)
-    unique_names <- unique(fasta_names)
-    for (i in seq_along(unique_names)) {
-      matches <- fasta_names == unique_names[i]
-      if (sum(matches) > 1) {
-        old_names <- fasta_names[matches]
-        new_names <- paste0(unique_names[i], seq_len(sum(matches)))
-        cat("Old names:", old_names, "\n New names:", new_names, "\n\n\n")
-        names(fasta_content)[matches] <- new_names
-      }
-    }
-  }
 
   # 04 / 14 Calculate repeat scores for each sequence 
   log_step(4, 13, "Calculating repeat scores for each sequence")
