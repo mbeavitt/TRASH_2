@@ -23,7 +23,15 @@ for (i in seq_along(source_files)) {
 }
 
 if (installed_and_checked()) {
-  arguments <- parse_arguments(arguments, run_dir)
+  # Use saved arguments if interactive, otherwise parse from command line
+  if (interactive() && file.exists("arguments.rds")) {
+    arguments <- readRDS("arguments.rds")
+  } else {
+    arguments <- parse_arguments(arguments, run_dir)
+    # Save arguments for debugging
+    saveRDS(arguments, "arguments.rds")
+  }
+
   set.seed(0)
   main(arguments)
   print("TRASH exiting correctly")
