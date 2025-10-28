@@ -294,114 +294,35 @@ main <- function(cmd_arguments) {
           cat(i, "")
           next
         }
-        # Recalculate representative 
+        # Recalculate representative
         # TODO: Use more repeats for long arrays, this is stringent and good for most arrays, but some deserve a better recalculation
-        max_repeats_to_align <- 15
-        min_repeats_to_recalculate <- 10
-        repeats_df$representative <- arrays_chr$representative[i]
-        repeats_df$score_template <- -1
-        sample_IDs <- which(repeats_df$strand != ".")
-        if (length(sample_IDs) >= min_repeats_to_recalculate) {
-          if (length(sample_IDs) > max_repeats_to_align) {
-            sample_IDs <- sample(sample_IDs, max_repeats_to_align)
-          }
-          repeats_seq <- unlist(lapply(sample_IDs, function(X) {
-            paste0(sequence_substring[(repeats_df$start[X] - adjust_start):
-                                      (repeats_df$end[X] - adjust_start)],
-                   collapse = "")
-          }))
-          strands <- repeats_df$strand[sample_IDs]
-          repeats_seq[which(strands == "-")] <- unlist(
-            lapply(repeats_seq[which(strands == "-")], rev_comp_string))
-          alignment <- write_align_read(
-            mafft_exe = mafft_dir,
-            temp_dir = cmd_arguments$output_folder,
-            sequences = repeats_seq,
-            name = paste(basename(cmd_arguments$fasta_file),
-                        arrays_chr$seqID[i],
-                        arrays_chr$array_num_ID[i],
-                        i, runif(1, 0, 1), sep = "_"))
-          consensus <- consensus_N(alignment, arrays_chr$top_N[i])
-          if (length(consensus) != 0) repeats_df$representative <- consensus
-          remove(alignment, consensus, repeats_seq, strands)
-        }
-        # check if short gaps contain the repeat 
+        array_info <- list(
+          representative = arrays_chr$representative[i],
+          seqID = arrays_chr$seqID[i],
+          array_num_ID = arrays_chr$array_num_ID[i],
+          top_N = arrays_chr$top_N[i],
+          i = i
+        )
+        repeats_df <- recalculate_representative(
+          repeats_df, sequence_substring, adjust_start, array_info,
+          mafft_dir, cmd_arguments$output_folder, basename(cmd_arguments$fasta_file)
+        )
+        # Check if short gaps contain the repeat
         repeats_df <- fill_gaps(repeats_df, array_sequence, arrays_chr$start[i])
-        # Change to edit distance based score
-        repeats_seq <- unlist(lapply(seq_len(nrow(repeats_df)), function(X) {
-          paste0(sequence_substring[(repeats_df$start[X] - adjust_start):
-                                    (repeats_df$end[X] - adjust_start)],
-                 collapse = "")
-        }))
-        costs <- list(insertions = 1, deletions = 1, substitutions = 1)
-        rep_len <- nchar(repeats_df$representative[1])
-        plus_strand <- repeats_df$strand == "+"
-        minus_strand <- repeats_df$strand == "-"
 
-        if (sum(plus_strand) > 0) {
-          repeats_df$score[plus_strand] <- adist(repeats_df$representative[1],
-                                                  repeats_seq[plus_strand],
-                                                  costs)[1, ] / rep_len * 100
-        }
-        if (sum(minus_strand) > 0) {
-          repeats_df$score[minus_strand] <- adist(rev_comp_string(repeats_df$representative[1]),
-                                                   repeats_seq[minus_strand])[1, ] / rep_len * 100
-        }
-        if (arrays_chr$class[i] %in% names(templates)) {
-          template <- paste(templates[[which(names(templates) == arrays_chr$class[i])]], collapse = "")
-          temp_len <- nchar(template)
-          if (sum(plus_strand) > 0) {
-            repeats_df$score_template[plus_strand] <- adist(template,
-                                                            repeats_seq[plus_strand],
-                                                            costs)[1, ] / temp_len * 100
-          }
-          if (sum(minus_strand) > 0) {
-            repeats_df$score_template[minus_strand] <- adist(rev_comp_string(template),
-                                                             repeats_seq[minus_strand])[1, ] / temp_len * 100
-          }
-        }
-        # Correct repeats split into two by nhmmer
-        score_min_to_merge <- 30
-        size_max_to_merge <- 1.0
-        i_r <- 1
-        while(i_r < nrow(repeats_df)) {
-          both_high_score <- repeats_df$score[i_r] > score_min_to_merge &&
-                             repeats_df$score[i_r + 1] > score_min_to_merge
-          combined_short <- sum(repeats_df$width[i_r:(i_r + 1)]) <
-                           (size_max_to_merge * nchar(repeats_df$representative[1]))
-
-          if (both_high_score && combined_short) {
-            both_plus <- (repeats_df$strand[i_r] == "+") && (repeats_df$strand[i_r + 1] == "+")
-            both_minus <- (repeats_df$strand[i_r] == "-") && (repeats_df$strand[i_r + 1] == "-")
-
-            if (both_plus || both_minus) {
-              merged_seq <- paste0(repeats_seq[i_r:(i_r + 1)], collapse = "")
-              rep_to_compare <- if (both_plus) {
-                repeats_df$representative[1]
-              } else {
-                rev_comp_string(repeats_df$representative[1])
-              }
-              new_score <- adist(rep_to_compare, merged_seq, costs)[1, ] / rep_len * 100
-
-              if (new_score < min(repeats_df$score[i_r:(i_r + 1)])) {
-                repeats_df$end[i_r] <- repeats_df$end[i_r + 1]
-                repeats_df <- repeats_df[-(i_r + 1), ]
-                repeats_seq <- repeats_seq[-(i_r + 1)]
-                repeats_seq[i_r] <- paste0(sequence_substring[(repeats_df$start[i_r] - adjust_start):
-                                                              (repeats_df$end[i_r] - adjust_start)],
-                                          collapse = "")
-                repeats_df$score[i_r] <- new_score
-                if (arrays_chr$class[i_r] %in% names(templates)) {
-                  template <- paste(templates[[which(names(templates) == arrays_chr$class[i_r])]], collapse = "")
-                  temp_to_compare <- if (both_plus) template else rev_comp_string(template)
-                  repeats_df$score_template[i_r] <- adist(temp_to_compare, repeats_seq[i_r])[1, ] /
-                                                    nchar(template) * 100
-                }
-              }
-            }
-          }
-          i_r <- i_r + 1
-        }
+        # Calculate edit distance scores
+        score_result <- calculate_repeat_edit_distance_scores(
+          repeats_df, sequence_substring, adjust_start, templates, arrays_chr$class[i]
+        )
+        repeats_df <- score_result$repeats_df
+        repeats_seq <- score_result$repeats_seq
+        # Merge repeats that were incorrectly split by nhmmer
+        merge_result <- merge_split_repeats(
+          repeats_df, repeats_seq, sequence_substring, adjust_start,
+          templates, arrays_chr$class[i]
+        )
+        repeats_df <- merge_result$repeats_df
+        repeats_seq <- merge_result$repeats_seq
         # Handle edge repeats
         repeats_df <- handle_edge_repeat(repeats_df, sequence_substring, adjust_start)
         # TODO: make sure the edge repeats have their template score recalculated too
