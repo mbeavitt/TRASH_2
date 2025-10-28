@@ -398,65 +398,20 @@ main <- function(cmd_arguments) {
 
   track_time("Finished 11 summarise array info", "Arrays nrow", nrow(arrays))
 
-  # 12 / 14 Save array output
-  log_step(12, 13, "Saving the array table")
-  write.csv(arrays, make_output_path("_arrays.csv"), row.names = FALSE)
-  export_gff(annotations.data.frame = arrays,
-             output = cmd_arguments$output_folder,
-             file.name = paste0(basename(cmd_arguments$fasta_file), "_arrays"),
-             source = "TRASH",
-             type = "Satellite_array",
-             seqid = 3,
-             start = 1,
-             end = 2,
-             score = 5,
-             attributes = c(9, 10, 11),
-             attribute.names = c("Name=", "Repeat_no=", "Repeat_median_width="))
+  # Save outputs
+  log_step(12, 13, "Saving outputs")
+  save_array_output(arrays, cmd_arguments$output_folder,
+                   basename(cmd_arguments$fasta_file), make_output_path)
   log_sep()
-  track_time("Finished 12 saved array info", "Arrays nrow", nrow(arrays))
+  track_time("Saved array output", "Arrays nrow", nrow(arrays))
 
-  # 13 / 14 Save repeat output
-  log_step(13, 13, "Saving the repeats table")
-  write.csv(repeats, make_output_path("_repeats.csv"), row.names = FALSE)
-  export_gff(annotations.data.frame = repeats,
-             output = cmd_arguments$output_folder,
-             file.name = paste0(basename(cmd_arguments$fasta_file), "_repeats"),
-             source = "TRASH",
-             type = "Satellite_DNA",
-             seqid = 1,
-             start = 3,
-             end = 4,
-             strand = 5,
-             attributes = c(9, 6, 10),
-             attribute.names = c("Name=", "Arry_EDS=", "Family_EDS="))
-
-  if (add_sequence_info) {
-    repeats$sequence <- unlist(lapply(seq_len(nrow(repeats)), function(X) {
-      paste0(fasta_content[[which(names(fasta_content) == repeats$seqID[X])]][
-        repeats$start[X]:repeats$end[X]], collapse = "")
-    }))
-
-    minus_indices <- which(repeats$strand == "-")
-    repeats$sequence[minus_indices] <- unlist(
-      lapply(repeats$sequence[minus_indices], rev_comp_string))
-    write.csv(repeats, make_output_path("_repeats_with_seq.csv"), row.names = FALSE)
-  }
-
+  save_repeat_output(repeats, fasta_content, cmd_arguments$output_folder,
+                    basename(cmd_arguments$fasta_file), make_output_path, add_sequence_info)
   log_sep()
-  track_time("Finished 13 saved repeats info", "Repeats number", nrow(repeats))
+  track_time("Saved repeat output", "Repeats number", nrow(repeats))
 
-  # 14 / 14 Done
+  # Generate runtime report
   if (report_runtime) {
-    times$time_passed <- 0
-    times$time_per_Mbp <- 0
-    times$time_per_event_data_value <- 0
-    for (i in 2:length(times$time)) {
-      times$time_passed <- append(times$time_passed, (times$time[i] - times$time[i - 1]))
-      times$time_per_Mbp <- append(times$time_per_Mbp,
-                                    (1000000 * times$time_passed[i] / times$data_value[2]))
-      times$time_per_event_data_value <- append(times$time_per_event_data_value,
-                                                 (1000000 * times$time_passed[i] / times$data_value[i]))
-    }
-    write.csv(times, make_output_path("_run_time.csv"), row.names = FALSE)
+    generate_runtime_report(times, make_output_path)
   }
 }
