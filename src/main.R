@@ -58,55 +58,18 @@ main <- function(cmd_arguments) {
   log_sep()
   track_time("03 Fasta loaded", "Fasta total length", sum(sapply(fasta_content, length)))
 
-  # 04 / 14 Calculate repeat scores for each sequence 
-  log_step(4, 13, "Calculating repeat scores for each sequence")
-  chromosome_lengths <- unlist(lapply(seq_along(fasta_content), function(X) length(fasta_content[[X]])))
-  cat("  Assembly total length:\t", round(sum(chromosome_lengths) / 1000000, 1), "Mbp \n")
-  cat("  Sequences count:\t\t\t", length(chromosome_lengths), " \n")
-  cat("  Sequences names:\t\t\t", names(fasta_content), "\n")
-  cat("  Sequences lengths (bp):\t", chromosome_lengths, "\n\n")
-
-  repeat_scores <- list()
-  for (i in seq_along(fasta_content)) {
-    cat("  Fasta sequence ", i, ": ", names(fasta_content)[i], " \t", sep = "")
-    repeat_scores <- append(repeat_scores,
-                           list(sequence_window_score(fasta_content[[i]], window_size, kmer,
-                                                      output_dir = cmd_arguments$output_folder)))
-  }
-  log_sep()
-  track_time("Finished 04 sequence window score", "Fasta total length",
-             sum(sapply(fasta_content, length)))
-
-  # 05 / 14 Identify regions with high repeat content and merge into a df 
-  log_step(5, 13, "Identifying regions with high repeat content")
-  repetitive_regions <- data.frame(starts = NULL, ends = NULL, scores = NULL,
-                                   seqID = NULL, numID = NULL)
-  for (i in seq_along(repeat_scores)) {
-    if (length(repeat_scores[[i]]) == 0) next
-    regions_of_sequence <- merge_windows(list_of_scores = repeat_scores[[i]],
-                                         window_size = window_size,
-                                         sequence_full_length = length(fasta_content[[i]]),
-                                         log_messages)
-    if (nrow(regions_of_sequence) != 0) {
-      regions_of_sequence$seqID <- names(fasta_content)[[i]]
-      regions_of_sequence$numID <- i
-      repetitive_regions <- rbind(repetitive_regions, regions_of_sequence)
-    }
+  # Score sequences and identify repetitive regions
+  log_step(4, 13, "Scoring sequences for repeats and identifying regions")
+  repetitive_regions <- score_sequences_for_repeats(fasta_content, window_size, kmer,
+                                                    cmd_arguments$output_folder, log_messages)
+  if (is.null(repetitive_regions)) {
+    print("No regions with repeats identified")
+    return(0)
   }
   write.csv(repetitive_regions, make_output_path("_regarrays.csv"), row.names = FALSE)
-
-  if (!inherits(repetitive_regions, "data.frame")) {
-    print("No regions with repeats identified")
-    return(0)
-  }
-  if (nrow(repetitive_regions) == 0) {
-    print("No regions with repeats identified")
-    return(0)
-  }
   log_sep()
-  track_time("Finished 05 merge windows into regions", "Number of windows to merge",
-             sum(sapply(repeat_scores, length)))
-  remove(repeat_scores)
+  track_time("Finished scoring and region identification", "Total region length",
+             sum(repetitive_regions$ends - repetitive_regions$starts))
   # 06 / 14 Split regions into arrays 
   log_step(6, 13, "Identifying individual arrays with repeats")
   date <- Sys.Date()
