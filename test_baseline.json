@@ -1,1 +1,11 @@
-{}
+{
+  "ath_Chr1_extraction_trc.fasta_aregarrays.csv": "7c02802feb12dc7b154c30fb5a525a21",
+  "ath_Chr1_extraction_trc.fasta_arrays.csv": "410e466df9f994443eadf56ef04c475b",
+  "ath_Chr1_extraction_trc.fasta_arrays.gff": "84c5f8c4acf09b3f13a7ad7767e7c9de",
+  "ath_Chr1_extraction_trc.fasta_classarrays.csv": "28d03833bb6ee3d5aeb4622cc254d7e3",
+  "ath_Chr1_extraction_trc.fasta_no_repeats_arrays.csv": "b421d2d1d509855b18e2b768704d02e6",
+  "ath_Chr1_extraction_trc.fasta_regarrays.csv": "0a36d415e49e7802bb3efaf7651f78a2",
+  "ath_Chr1_extraction_trc.fasta_repeats.csv": "b7caa8d5d03b48a3f0a10e8a61e3af38",
+  "ath_Chr1_extraction_trc.fasta_repeats.gff": "eea3a6698d3bd35599a8524e1df7108d",
+  "ath_Chr1_extraction_trc.fasta_repeats_with_seq.csv": "2fb9a5f2fef09e48621f1c2ead16e46e"
+}
