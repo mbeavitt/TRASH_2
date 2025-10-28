@@ -7,3 +7,5 @@ src/.Rhistory
 ./lintr
 __pycache__/
 src/arguments.rds
+test_output/
+.pytest_cache/
