@@ -23,8 +23,10 @@ main <- function(cmd_arguments) {
   }
 
   make_output_path <- function(suffix) {
-    file.path(cmd_arguments$output_folder,
-              paste0(basename(cmd_arguments$fasta_file), suffix))
+    file.path(
+              cmd_arguments$output_folder,
+              paste0(basename(cmd_arguments$fasta_file), suffix)
+    )
   }
 
   make_temp_path <- function(...) {
@@ -39,7 +41,6 @@ main <- function(cmd_arguments) {
 
   mafft_executable <- "mafft"
   nhmmer_executable <- "nhmmer"
-  log_messages <- ""
 
   # Settings
   kmer <- 10
@@ -48,9 +49,10 @@ main <- function(cmd_arguments) {
   add_sequence_info <- TRUE
 
   times <- list(
-                time = as.numeric(Sys.time(),
+                time = as.numeric(Sys.time()),
                 event = "start main function",
-                data_type = "none", data_value = 0)
+                data_type = "none",
+                data_value = 0
   )
 
   # Load fasta
@@ -77,8 +79,7 @@ main <- function(cmd_arguments) {
                                                     fasta_content,
                                                     window_size,
                                                     kmer,
-                                                    cmd_arguments$output_folder,
-                                                    log_messages
+                                                    cmd_arguments$output_folder
   )
 
   if (is.null(repetitive_regions)) {
@@ -91,8 +92,11 @@ main <- function(cmd_arguments) {
             row.names = FALSE
   )
   log_sep()
-  track_time("Finished scoring and region identification", "Total region length",
-             sum(repetitive_regions$ends - repetitive_regions$starts))
+  track_time(
+             "Finished scoring and region identification",
+             "Total region length",
+             sum(repetitive_regions$ends - repetitive_regions$starts)
+  )
   # 06 / 14 Split regions into arrays 
   log_step(6, 13, "Identifying individual arrays with repeats")
   date <- Sys.Date()
@@ -120,7 +124,8 @@ main <- function(cmd_arguments) {
       sequence_substring <- fasta_content[[i]][repetitive_regions_chr$starts[region_chunk[j]] : (repetitive_regions_chr$ends[region_chunk[j + 1] - 1])]
       start_adjust <- repetitive_regions_chr$starts[region_chunk[j]] - 1
       for (k in (region_chunk[j] : (region_chunk[j+1] - 1))) {
-        out <- split_and_check_arrays(start = repetitive_regions_chr$starts[k],
+        out <- split_and_check_arrays(
+                                      start = repetitive_regions_chr$starts[k],
                                       end = repetitive_regions_chr$ends[k],
                                       sequence = sequence_substring[(repetitive_regions_chr$starts[k] - start_adjust) : (repetitive_regions_chr$ends[k] - start_adjust)],
                                       seqID = repetitive_regions_chr$seqID[k],
@@ -132,7 +137,8 @@ main <- function(cmd_arguments) {
                                       temp_dir = cmd_arguments$output_folder,
                                       src_dir = getwd(),
                                       sink_output = FALSE,
-                                      kmer = kmer)
+                                      kmer = kmer
+        )
         save(out, file = make_temp_path(i, j, k, date, "06_data"))
         remove(out)
       }
@@ -151,8 +157,11 @@ main <- function(cmd_arguments) {
   log_sep()
   write.csv(arrays, make_output_path("_aregarrays.csv"), row.names = FALSE)
 
-  track_time("Finished 06 split regions into arrays", "Total length of arrays",
-             sum(arrays$end - arrays$start))
+  track_time(
+             "Finished 06 split regions into arrays",
+             "Total length of arrays",
+             sum(arrays$end - arrays$start)
+  )
   # 07 / 14 Shift representative repeats and apply templates 
   log_step(7, 13, "Shifting representative and comparing templates")
   pb <- txtProgressBar(min = 0, max = nrow(arrays), style = 1)
@@ -176,8 +185,11 @@ main <- function(cmd_arguments) {
     }
   }
   arrays$representative <- shifted_representatives
-  track_time("Finished 07 shift representatives and apply templates",
-             "Number of templates times nrow arrays", length_templates * nrow(arrays))
+  track_time(
+             "Finished 07 shift representatives and apply templates",
+             "Number of templates times nrow arrays",
+             length_templates * nrow(arrays)
+  )
 
   arrays$class <- ""
   for (i in seq_len(nrow(arrays))) {
@@ -219,8 +231,10 @@ main <- function(cmd_arguments) {
       arrays_t <- rbind(arrays_t, arrays_class)
       remove(arrays_class)
     }
-    arrays <- rbind(arrays_t,
-                    arrays[which(arrays$class %in% c(names(templates), "none_identified")), ])
+    arrays <- rbind(
+                    arrays_t,
+                    arrays[which(arrays$class %in% c(names(templates), "none_identified")), ]
+    )
     close(pb)
     remove(arrays_t)
   } else {
@@ -288,21 +302,25 @@ main <- function(cmd_arguments) {
         cat(i, "_ ", sep = "")
         if (arrays_chr$top_N[i] >= 14) {
           # nhmmer for repeats of 14+ bp
-          repeats_df <- map_nhmmer(cmd_arguments$output_folder,
+          repeats_df <- map_nhmmer(
+                                   cmd_arguments$output_folder,
                                    arrayID = arrays_chr$array_num_ID[i],
                                    arrays_chr$representative[i],
                                    arrays_chr$seqID[i],
                                    arrays_chr$start[i],
                                    arrays_chr$end[i],
                                    array_sequence,
-                                   nhmmer_executable)
+                                   nhmmer_executable
+          )
         } else {
           # matchpattern for shorter
-          repeats_df <- map_default(arrayID = arrays_chr$array_num_ID[i],
+          repeats_df <- map_default(
+                                    arrayID = arrays_chr$array_num_ID[i],
                                     arrays_chr$representative[i],
                                     arrays_chr$seqID[i],
                                     arrays_chr$start[i],
-                                    paste(array_sequence, collapse = ""))
+                                    paste(array_sequence, collapse = "")
+          )
         }
         if (nrow(repeats_df) < 2) {
           cat(i, "")
@@ -334,22 +352,35 @@ main <- function(cmd_arguments) {
           i = i
         )
         repeats_df <- recalculate_representative(
-          repeats_df, sequence_substring, adjust_start, array_info,
-          mafft_executable, cmd_arguments$output_folder, basename(cmd_arguments$fasta_file)
+                                                 repeats_df,
+                                                 sequence_substring,
+                                                 adjust_start,
+                                                 array_info,
+                                                 mafft_executable,
+                                                 cmd_arguments$output_folder,
+                                                 basename(cmd_arguments$fasta_file)
         )
         # Check if short gaps contain the repeat
         repeats_df <- fill_gaps(repeats_df, array_sequence, arrays_chr$start[i])
 
         # Calculate edit distance scores
         score_result <- calculate_repeat_edit_distance_scores(
-          repeats_df, sequence_substring, adjust_start, templates, arrays_chr$class[i]
+                                                              repeats_df,
+                                                              sequence_substring,
+                                                              adjust_start,
+                                                              templates,
+                                                              arrays_chr$class[i]
         )
         repeats_df <- score_result$repeats_df
         repeats_seq <- score_result$repeats_seq
         # Merge repeats that were incorrectly split by nhmmer
         merge_result <- merge_split_repeats(
-          repeats_df, repeats_seq, sequence_substring, adjust_start,
-          templates, arrays_chr$class[i]
+                                            repeats_df,
+                                            repeats_seq,
+                                            sequence_substring,
+                                            adjust_start,
+                                            templates,
+                                            arrays_chr$class[i]
         )
         repeats_df <- merge_result$repeats_df
         repeats_seq <- merge_result$repeats_seq
@@ -406,8 +437,10 @@ main <- function(cmd_arguments) {
       arrays$representative[i] <- repeats$representative[which(repeats$arrayID == i)[1]]
     }
   }
-  repeats <- repeats[c("seqID", "arrayID", "start", "end", "strand", "score",
-                       "eval", "width", "class", "score_template")]
+  repeats <- repeats[c(
+                       "seqID", "arrayID", "start", "end", "strand", "score",
+                       "eval", "width", "class", "score_template"
+  )]
 
   track_time("Finished 11 reassign array representatives", "Arrays nrow", nrow(arrays))
 
@@ -430,13 +463,23 @@ main <- function(cmd_arguments) {
 
   # Save outputs
   log_step(12, 13, "Saving outputs")
-  save_array_output(arrays, cmd_arguments$output_folder,
-                   basename(cmd_arguments$fasta_file), make_output_path)
+  save_array_output(
+                   arrays,
+                   cmd_arguments$output_folder,
+                   basename(cmd_arguments$fasta_file),
+                   make_output_path
+  )
   log_sep()
   track_time("Saved array output", "Arrays nrow", nrow(arrays))
 
-  save_repeat_output(repeats, fasta_content, cmd_arguments$output_folder,
-                    basename(cmd_arguments$fasta_file), make_output_path, add_sequence_info)
+  save_repeat_output(
+                    repeats,
+                    fasta_content,
+                    cmd_arguments$output_folder,
+                    basename(cmd_arguments$fasta_file),
+                    make_output_path,
+                    add_sequence_info
+  )
   log_sep()
   track_time("Saved repeat output", "Repeats number", nrow(repeats))
 

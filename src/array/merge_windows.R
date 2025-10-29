@@ -1,4 +1,4 @@
-merge_windows <- function(list_of_scores, window_size, sequence_full_length, log_messages) {
+merge_windows <- function(list_of_scores, window_size, sequence_full_length) {
   # TODO make the treshold dynamic
   threshold <- 90
 
@@ -9,9 +9,11 @@ merge_windows <- function(list_of_scores, window_size, sequence_full_length, log
   # }
 
   if (sum(list_of_scores < threshold) == 0) {
-    return(data.frame(starts = vector(mode = "numeric"),
+    return(data.frame(
+                      starts = vector(mode = "numeric"),
                       ends = vector(mode = "numeric"),
-                      scores = vector(mode = "numeric")))
+                      scores = vector(mode = "numeric")
+    ))
   }
 
   # window definition needs to be propagated from sequence_window_score() funtion
@@ -31,9 +33,11 @@ merge_windows <- function(list_of_scores, window_size, sequence_full_length, log
   }
 
   if (length(starts) == 1) {
-    repetitive_regions <- data.frame(starts = starts,
+    repetitive_regions <- data.frame(
+                                     starts = starts,
                                      ends = sequence_full_length,
-                                     scores = list_of_scores)
+                                     scores = list_of_scores
+    )
     return(repetitive_regions)
   }
 
@@ -47,17 +51,23 @@ merge_windows <- function(list_of_scores, window_size, sequence_full_length, log
     stop("merge_windows ends != list_of_scores")
   }
   
-  repetitive_regions <- data.frame(starts = starts[list_of_scores < threshold],
+  repetitive_regions <- data.frame(
+                                   starts = starts[list_of_scores < threshold],
                                    ends = ends[list_of_scores < threshold],
-                                   scores = list_of_scores[list_of_scores < threshold])
+                                   scores = list_of_scores[list_of_scores < threshold]
+  )
   
   if (nrow(repetitive_regions) < 2) return(repetitive_regions)
 
   i <- 1
   while (i < nrow(repetitive_regions)) {
     if ((repetitive_regions$ends[i] + 1) >= (repetitive_regions$starts[i + 1])) {
-      repetitive_regions$scores[i] <- ((repetitive_regions$scores[i] * (repetitive_regions$ends[i] - repetitive_regions$starts[i])) +
-                                         (repetitive_regions$scores[i + 1] * (repetitive_regions$ends[i + 1] - repetitive_regions$starts[i + 1]))) / (repetitive_regions$ends[i + 1] - repetitive_regions$starts[i + 1] + repetitive_regions$ends[i] - repetitive_regions$starts[i])
+      repetitive_regions$scores[i] <- (
+                                         (repetitive_regions$scores[i] * (repetitive_regions$ends[i] - repetitive_regions$starts[i])) +
+                                         (repetitive_regions$scores[i + 1] * (repetitive_regions$ends[i + 1] - repetitive_regions$starts[i + 1]))
+      ) / (
+                                         repetitive_regions$ends[i + 1] - repetitive_regions$starts[i + 1] + repetitive_regions$ends[i] - repetitive_regions$starts[i]
+      )
       repetitive_regions$ends[i] <- repetitive_regions$ends[i + 1]
       repetitive_regions <- repetitive_regions[-(i + 1), ]
       i <- i - 1

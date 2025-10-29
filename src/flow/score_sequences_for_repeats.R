@@ -1,25 +1,37 @@
-score_sequences_for_repeats <- function(fasta_content, window_size, kmer, output_folder, log_messages = "") {
+score_sequences_for_repeats <- function(fasta_content, window_size, kmer, output_folder) {
   # Calculate repeat scores for each sequence
   cat("### Calculating repeat scores for each sequence ###\n")
 
   repeat_scores <- list()
   for (i in seq_along(fasta_content)) {
     cat("  Fasta sequence ", i, ": ", names(fasta_content)[i], " \t", sep = "")
-    repeat_scores <- append(repeat_scores,
-                           list(sequence_window_score(fasta_content[[i]], window_size, kmer,
-                                                      output_dir = output_folder)))
+    repeat_scores <- append(
+                           repeat_scores,
+                           list(sequence_window_score(
+                                                      fasta_content[[i]],
+                                                      window_size,
+                                                      kmer,
+                                                      output_dir = output_folder
+                           ))
+    )
   }
 
   # Identify regions with high repeat content and merge into a dataframe
   cat("\n### Identifying regions with high repeat content ###\n")
-  repetitive_regions <- data.frame(starts = NULL, ends = NULL, scores = NULL,
-                                   seqID = NULL, numID = NULL)
+  repetitive_regions <- data.frame(
+                                   starts = NULL,
+                                   ends = NULL,
+                                   scores = NULL,
+                                   seqID = NULL,
+                                   numID = NULL
+  )
   for (i in seq_along(repeat_scores)) {
     if (length(repeat_scores[[i]]) == 0) next
-    regions_of_sequence <- merge_windows(list_of_scores = repeat_scores[[i]],
+    regions_of_sequence <- merge_windows(
+                                         list_of_scores = repeat_scores[[i]],
                                          window_size = window_size,
-                                         sequence_full_length = length(fasta_content[[i]]),
-                                         log_messages)
+                                         sequence_full_length = length(fasta_content[[i]])
+    )
     if (nrow(regions_of_sequence) != 0) {
       regions_of_sequence$seqID <- names(fasta_content)[[i]]
       regions_of_sequence$numID <- i
