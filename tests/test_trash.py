@@ -17,7 +17,7 @@ import pytest
 
 # Configuration
 TEST_FASTA = "testing_fastas/ath_Chr1_extraction_trc.fasta"
-BASELINE_FILE = "test_baseline.json"
+BASELINE_FILE = "tests/test_baseline.json"
 OUTPUT_PATTERN = "ath_Chr1_extraction_trc.fasta_*"
 TEST_OUTPUT_DIR = "test_output"  # Dedicated directory for test outputs
 TRASH_CMD = ["Rscript", "src/TRASH.R", "-f", TEST_FASTA]
