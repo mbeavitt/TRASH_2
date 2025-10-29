@@ -37,8 +37,8 @@ main <- function(cmd_arguments) {
   log_hash()
   log_sep()
 
-  mafft_dir <- "mafft"
-  nhmmer_dir <- "nhmmer"
+  mafft_executable <- "mafft"
+  nhmmer_executable <- "nhmmer"
   log_messages <- ""
 
   # Settings
@@ -98,7 +98,7 @@ main <- function(cmd_arguments) {
                                       arrID = k,
                                       max_repeat = cmd_arguments$max_rep_size,
                                       min_repeat = cmd_arguments$min_rep_size,
-                                      mafft = mafft_dir,
+                                      mafft = mafft_executable,
                                       temp_dir = cmd_arguments$output_folder,
                                       src_dir = getwd(),
                                       sink_output = FALSE,
@@ -265,7 +265,7 @@ main <- function(cmd_arguments) {
                                    arrays_chr$start[i],
                                    arrays_chr$end[i],
                                    array_sequence,
-                                   nhmmer_dir)
+                                   nhmmer_executable)
         } else {
           # matchpattern for shorter
           repeats_df <- map_default(arrayID = arrays_chr$array_num_ID[i],
@@ -305,7 +305,7 @@ main <- function(cmd_arguments) {
         )
         repeats_df <- recalculate_representative(
           repeats_df, sequence_substring, adjust_start, array_info,
-          mafft_dir, cmd_arguments$output_folder, basename(cmd_arguments$fasta_file)
+          mafft_executable, cmd_arguments$output_folder, basename(cmd_arguments$fasta_file)
         )
         # Check if short gaps contain the repeat
         repeats_df <- fill_gaps(repeats_df, array_sequence, arrays_chr$start[i])
