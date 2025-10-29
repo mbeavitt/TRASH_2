@@ -1,11 +1,6 @@
 score_sequences_for_repeats <- function(fasta_content, window_size, kmer, output_folder, log_messages = "") {
   # Calculate repeat scores for each sequence
   cat("### Calculating repeat scores for each sequence ###\n")
-  chromosome_lengths <- unlist(lapply(seq_along(fasta_content), function(X) length(fasta_content[[X]])))
-  cat("  Assembly total length:\t", round(sum(chromosome_lengths) / 1000000, 1), "Mbp \n")
-  cat("  Sequences count:\t\t\t", length(chromosome_lengths), " \n")
-  cat("  Sequences names:\t\t\t", names(fasta_content), "\n")
-  cat("  Sequences lengths (bp):\t", chromosome_lengths, "\n\n")
 
   repeat_scores <- list()
   for (i in seq_along(fasta_content)) {
