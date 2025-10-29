@@ -2,10 +2,13 @@
 """
 Test framework for TRASH.R - compares output file hashes between runs.
 Uses pytest for testing infrastructure.
+Tests are parameterized to run with multiple FASTA files (small and med).
 
 Usage:
-    pytest test_trash.py -v                    # Run tests
-    pytest test_trash.py -v --update-baseline  # Update baseline hashes
+    pytest test_trash.py -v                    # Run all tests
+    pytest test_trash.py -v -k small           # Run only small tests
+    pytest test_trash.py -v -k med             # Run only med tests
+    pytest test_trash.py -v --update-baseline  # Update all baseline hashes
 """
 
 import subprocess
@@ -16,13 +19,23 @@ from pathlib import Path
 import pytest
 
 # Configuration
-TEST_FASTA = "testing_fastas/ath_Chr1_extraction_trc.fasta"
-BASELINE_FILE = "tests/test_baseline.json"
-OUTPUT_PATTERN = "ath_Chr1_extraction_trc.fasta_*"
+TEST_FASTAS = [
+    {
+        "name": "small",
+        "fasta": "testing_fastas/ath_Chr1_extraction_trc.fasta",
+        "baseline": "tests/test_baseline_small.json",
+        "output_pattern": "ath_Chr1_extraction_trc.fasta_*",
+        "exclude": ["ath_Chr1_extraction_trc.fasta_run_time.csv"]
+    },
+    {
+        "name": "med",
+        "fasta": "testing_fastas/Ath_Chr1_med.fasta",
+        "baseline": "tests/test_baseline_med.json",
+        "output_pattern": "Ath_Chr1_med.fasta_*",
+        "exclude": ["Ath_Chr1_med.fasta_run_time.csv"]
+    }
+]
 TEST_OUTPUT_DIR = "test_output"  # Dedicated directory for test outputs
-TRASH_CMD = ["Rscript", "src/TRASH.R", "-f", TEST_FASTA]
-# Files to exclude from hash comparison (non-deterministic)
-EXCLUDE_FILES = ["ath_Chr1_extraction_trc.fasta_run_time.csv"]
 
 
 def compute_file_hash(filepath):
@@ -34,35 +47,35 @@ def compute_file_hash(filepath):
     return md5_hash.hexdigest()
 
 
-def get_output_files(src_dir):
+def get_output_files(src_dir, output_pattern):
     """Get all output files matching the pattern."""
-    return sorted(src_dir.glob(OUTPUT_PATTERN))
+    return sorted(src_dir.glob(output_pattern))
 
 
-def compute_all_hashes(src_dir):
+def compute_all_hashes(src_dir, output_pattern, exclude_files):
     """Compute hashes for all output files (excluding non-deterministic files)."""
-    files = get_output_files(src_dir)
+    files = get_output_files(src_dir, output_pattern)
     hashes = {}
     for filepath in files:
         relative_path = filepath.name
         # Skip files that are expected to be non-deterministic
-        if relative_path in EXCLUDE_FILES:
+        if relative_path in exclude_files:
             continue
         hashes[relative_path] = compute_file_hash(filepath)
     return hashes
 
 
-def clean_output_files(src_dir):
+def clean_output_files(src_dir, output_pattern):
     """Remove previous output files."""
-    for filepath in get_output_files(src_dir):
+    for filepath in get_output_files(src_dir, output_pattern):
         filepath.unlink()
 
 
-def run_trash(test_output_dir, project_root):
+def run_trash(test_output_dir, project_root, fasta_path):
     """Run TRASH.R in the test output directory and return success status."""
     # Build command with absolute paths
     trash_script = project_root / "src" / "TRASH.R"
-    fasta_file = project_root / TEST_FASTA
+    fasta_file = project_root / fasta_path
     cmd = ["Rscript", str(trash_script), "-f", str(fasta_file)]
 
     result = subprocess.run(
@@ -82,12 +95,6 @@ def run_trash(test_output_dir, project_root):
 def project_root():
     """Get the project root directory."""
     return Path(__file__).parent.parent
-
-
-@pytest.fixture(scope="session")
-def baseline_path(project_root):
-    """Get the baseline file path."""
-    return project_root / BASELINE_FILE
 
 
 @pytest.fixture(scope="session")
@@ -112,23 +119,24 @@ def test_output_dir(project_root):
         shutil.rmtree(output_dir)
 
 
-@pytest.fixture(scope="session")
-def current_hashes(test_output_dir, project_root):
-    """Run TRASH and compute hashes of output files."""
-    # Run TRASH.R in the isolated test directory
-    print(f"\nRunning TRASH.R in {test_output_dir}")
-    run_trash(test_output_dir, project_root)
-
-    # Compute hashes from the test output directory
-    hashes = compute_all_hashes(test_output_dir)
-
-    return hashes
-
-
-def test_trash_output_deterministic(current_hashes, baseline_path, request):
+@pytest.mark.parametrize("test_config", TEST_FASTAS, ids=[cfg["name"] for cfg in TEST_FASTAS])
+def test_trash_output_deterministic(test_config, test_output_dir, project_root, request):
     """Test that TRASH.R produces deterministic output by comparing file hashes."""
 
     update_baseline = request.config.getoption("--update-baseline")
+
+    # Run TRASH.R in the isolated test directory
+    print(f"\nRunning TRASH.R for {test_config['name']} in {test_output_dir}")
+    run_trash(test_output_dir, project_root, test_config['fasta'])
+
+    # Compute hashes from the test output directory
+    current_hashes = compute_all_hashes(
+        test_output_dir,
+        test_config['output_pattern'],
+        test_config['exclude']
+    )
+
+    baseline_path = project_root / test_config['baseline']
 
     if update_baseline:
         # Update baseline mode
@@ -175,6 +183,9 @@ def test_trash_output_deterministic(current_hashes, baseline_path, request):
         )
 
     print(f"\n✓ All {len(current_hashes)} output files match baseline")
+
+    # Clean up output files for this test
+    clean_output_files(test_output_dir, test_config['output_pattern'])
 
 
 if __name__ == "__main__":
