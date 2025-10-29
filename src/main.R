@@ -47,26 +47,49 @@ main <- function(cmd_arguments) {
   report_runtime <- TRUE
   add_sequence_info <- TRUE
 
-  times <- list(time = as.numeric(Sys.time()), event = "Start main function", data_type = "none", data_value = 0)
+  times <- list(
+                time = as.numeric(Sys.time(),
+                event = "start main function",
+                data_type = "none", data_value = 0)
+  )
 
   # Load fasta
-  log_step(3, 13, paste("Loading the fasta file:", basename(cmd_arguments$fasta_file)))
+  log_step(
+           3,
+           13,
+           paste("Loading the fasta file:", basename(cmd_arguments$fasta_file))
+  )
+
   fasta_content <- load_and_validate_fasta(cmd_arguments$fasta_file)
   if (is.null(fasta_content)) {
     return(1)
   }
   log_sep()
-  track_time("03 Fasta loaded", "Fasta total length", sum(sapply(fasta_content, length)))
+  track_time(
+             "03 Fasta loaded",
+             "Fasta total length",
+             sum(sapply(fasta_content, length))
+  )
 
   # Score sequences and identify repetitive regions
   log_step(4, 13, "Scoring sequences for repeats and identifying regions")
-  repetitive_regions <- score_sequences_for_repeats(fasta_content, window_size, kmer,
-                                                    cmd_arguments$output_folder, log_messages)
+  repetitive_regions <- score_sequences_for_repeats(
+                                                    fasta_content,
+                                                    window_size,
+                                                    kmer,
+                                                    cmd_arguments$output_folder,
+                                                    log_messages
+  )
+
   if (is.null(repetitive_regions)) {
     print("No regions with repeats identified")
     return(0)
   }
-  write.csv(repetitive_regions, make_output_path("_regarrays.csv"), row.names = FALSE)
+  write.csv(
+            repetitive_regions,
+            make_output_path("_regarrays.csv"),
+            row.names = FALSE
+  )
   log_sep()
   track_time("Finished scoring and region identification", "Total region length",
              sum(repetitive_regions$ends - repetitive_regions$starts))
@@ -76,9 +99,16 @@ main <- function(cmd_arguments) {
   regions_per_chunk <- 100
   arrays <- NULL
   for (i in seq_along(fasta_content)) {
-    cat("  Fasta sequence ", i, ": ", names(fasta_content)[i], " \t", sep = "")
+    cat(
+        "  Fasta sequence ", i, ": ", names(fasta_content)[i], " \t", sep = ""
+    )
     repetitive_regions_chr <- repetitive_regions[repetitive_regions$numID == i,]
-    cat("Repetitive regions in the sequence: ", length(repetitive_regions_chr), " \t", sep = "")
+    cat(
+        "Repetitive regions in the sequence: ",
+        length(repetitive_regions_chr),
+        " \t",
+        sep = ""
+    )
     if(nrow(repetitive_regions_chr) == 0) {
       cat("\n")
       next
