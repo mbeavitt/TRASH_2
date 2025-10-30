@@ -1,7 +1,6 @@
-sequence_window_score <- function(fasta_sequence, window_size, kmer = 10, output_dir = ".") {
+sequence_window_score <- function(fasta_sequence, window_size, kmer = 10) {
   # TODO check if changing these settings below can make the script work better,
   # although these were optimised
-  fraction_p <- 0.5
   if ((window_size / 2) <= kmer) stop("sequence_window_score: window size is too small")
 
   sequence_full_length <- length(fasta_sequence)
@@ -10,31 +9,17 @@ sequence_window_score <- function(fasta_sequence, window_size, kmer = 10, output
   starts <- result$starts
   ends <- result$ends
 
-  # Divide into chunks
+  # Process all windows in one go
   scores <- NULL
-  wins_per_chunk <- 100
-  chunk_starts <- seq(1, length(starts), wins_per_chunk)
-  chunk_starts <- c(chunk_starts, (length(starts) + 1))
-  cat("Sequence full length: ", round(sequence_full_length / 1000000, 3), " Mbp \t", sep = "")
-  cat("Chunks to complete: ", (length(chunk_starts) - 1), ". Finished: ", sep = "")
-  date <- Sys.Date()
-  for(i in 1 : (length(chunk_starts) - 1)) {
-    sequence_substring <- fasta_sequence[starts[chunk_starts[i]] : ends[chunk_starts[i + 1] - 1]]
-    for (j in (chunk_starts[i] : (chunk_starts[i + 1] - 1))) {
-      result <- seq_win_score_int(1, window_size, kmer, sequence_substring[(starts[j] - starts[chunk_starts[i]] + 1) : (ends[j] - starts[chunk_starts[i]] + 1)], fraction_p)
-      save(result, file = paste0(output_dir, "/", i, "_", j, "_", date, "_sequence_window_score_data"))
-      remove(result)
-    }
-    cat(i, "")
-    for(j in (chunk_starts[i] : (chunk_starts[i + 1] - 1))) {
-      load(paste0(output_dir, "/", i, "_", j, "_", date, "_sequence_window_score_data"))
-      unlink(paste0(output_dir, "/", i, "_", j, "_", date, "_sequence_window_score_data"))
-      scores <- c(scores, result)
-      remove(result)
-    }
+  cat("Sequence full length: ", round(sequence_full_length / 1000000, 3), " Mbp\n", sep = "")
+  cat("Processing ", length(starts), " windows...\n", sep = "")
+
+  for (i in seq_along(starts)) {
+    result <- seq_win_score_int(1, window_size, kmer, fasta_sequence[starts[i] : ends[i]])
+    scores <- c(scores, result)
   }
 
-  cat("\n")
+  cat("Done!\n")
 
   if ((sum(is.na(scores))>0) || (length(scores) == 0)) {
     stop("sequence_window_score did not produce valid result")

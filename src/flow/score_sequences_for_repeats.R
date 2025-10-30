@@ -1,7 +1,6 @@
 score_sequences_for_repeats <- function(fasta_content, window_size, kmer, output_folder) {
   # Calculate repeat scores for each sequence
   cat("### Calculating repeat scores for each sequence ###\n")
-
   repeat_scores <- list()
   for (i in seq_along(fasta_content)) {
     cat("  Fasta sequence ", i, ": ", names(fasta_content)[i], " \t", sep = "")
@@ -10,8 +9,7 @@ score_sequences_for_repeats <- function(fasta_content, window_size, kmer, output
                            list(sequence_window_score(
                                                       fasta_content[[i]],
                                                       window_size,
-                                                      kmer,
-                                                      output_dir = output_folder
+                                                      kmer
                            ))
     )
   }
