@@ -1,29 +1,28 @@
 split_and_check_arrays <- function(start, end, sequence, seqID, numID, arrID, max_repeat, min_repeat, mafft, temp_dir, src_dir, sink_output, kmer = 10) {
-  ### Settings ===========================================================================================
-  ## Find breaks
+  # Settings
+  # Find breaks
   window_step <- ceiling(max_repeat / 20)
   min_windows_comparison_score_to_detach_array <- 0.08
   min_windows_comparison_score_to_split_array <- 0.04
-  array_overlaps <- 0 # setting just in case; overlap might be usefull for making sure edge repeats are mapped correctly
+  array_overlaps <- 0 # setting just in case; overlap might be useful for making sure edge repeats are mapped correctly
   # Filter kmers
   global_min_kmers_count <- 2 # obligatory filtering to decrease the number of unique kmers, removes single-copy ones
-  ## Collapse kmers
+  # Collapse kmers
   max_edit <- 2
-  ## Find N using kmer distances 
+  # Find N using kmer distances 
   small_window_for_N_count <- 1000
   small_window_step_for_N_count <- 100
   small_window_min_percentage_of_distances <- small_window_for_N_count / 100
 
-  ### Extract kmers =======================================================================================
+  # Extract kmers
   start_fasta_relative <- start
   end_fasta_relative <- end
   start <- 1
   end <- end_fasta_relative - start_fasta_relative + 1
 
-  # kmers_list <- unlist(lapply(X = (start : (end - kmer)), FUN = extract_kmers, kmer, sequence))
   kmers_list <- unlist(lapply(X = (start : (end - kmer)), function(X) return(paste(sequence[X : (X + kmer - 1)], collapse = ""))))
 
-  ### Find breaks  ========================================================================================
+  # Find breaks
   window_size <- max_repeat
   if (window_size < 200) window_size <- 200
   if (window_size > end) window_size <- end
@@ -42,7 +41,6 @@ split_and_check_arrays <- function(start, end, sequence, seqID, numID, arrID, ma
       window_ends <- window_starts + window_size - 1
     }
 
-    # NEW
     window_starts <- window_starts[window_ends <= (end - window_size / 2)]
     window_ends <- window_ends[window_ends <= (end - window_size / 2)]
     window_starts_compare <- window_ends + 1
@@ -59,7 +57,6 @@ split_and_check_arrays <- function(start, end, sequence, seqID, numID, arrID, ma
     
     remove(window_starts, window_ends_compare)
   }
-  gc()
 
   if (length(windows_comparison_score) == 0) {
     # the region is too small to compare anything, analyse it as is
@@ -69,7 +66,7 @@ split_and_check_arrays <- function(start, end, sequence, seqID, numID, arrID, ma
     # repeats longer than the settings allow for
     arrays <- data.frame(start = start, end = end, seqID = seqID, numID = numID, score = 0, top_N = 0, top_5_N = "", representative = "")
   } else {
-    #attempt splitting and save each array, allow overlaps or not
+    # attempt splitting and save each array, allow overlaps or not
     window_event <- "new_top"
     window_event_position <- 1
     i <- which(windows_comparison_score > min_windows_comparison_score_to_detach_array)[1] + 1
@@ -133,18 +130,17 @@ split_and_check_arrays <- function(start, end, sequence, seqID, numID, arrID, ma
     }
   }
   remove(window_starts_compare, window_ends)
-  gc()
   if (!inherits(arrays, "data.frame")) { # sanity check, this should not happen
     arrays <- data.frame(start = start, end = end, seqID = seqID, numID = numID, score = -3, top_N = 0, top_5_N = "", representative = "")
   } else if (nrow(arrays) == 0) {
     arrays <- data.frame(start = start, end = end, seqID = seqID, numID = numID, score = -2, top_N = 0, top_5_N = "", representative = "")
   }
-  ### For each array  =====================================================================================
+  # For each array
   for (i in seq_len(nrow(arrays))) {
-    arrays$score[i] <- 100 - seq_win_score_int(start = 1, end = (arrays$end[i] - arrays$start[i] + 1), kmer = kmer, fasta_extraction = sequence[arrays$start[i] : arrays$end[i]], fraction_p = 0.5)
+    arrays$score[i] <- 100 - seq_win_score_int(start = 1, end = (arrays$end[i] - arrays$start[i] + 1), kmer = kmer, fasta_extraction = sequence[arrays$start[i] : arrays$end[i]])
     time_report_df <- as.numeric(arrays$end[i] - arrays$start[i])
 
-    ## extract kmers ==========================================================================
+    # extract kmers
     kmers_list_local <- kmers_list[arrays$start[i] : (arrays$end[i] - kmer)]
     counts_kmers <- table(kmers_list_local)
     counts_kmers <- counts_kmers[order(counts_kmers, decreasing = TRUE)]
@@ -154,7 +150,7 @@ split_and_check_arrays <- function(start, end, sequence, seqID, numID, arrID, ma
       print("Empty array, should not happen")
       next
     }
-    #clean up N containing kmers
+    # clean up N containing kmers
     counts_kmers <- counts_kmers[!grepl("N", kmer_names)]
     kmer_names <- kmer_names[!grepl("N", kmer_names)]
     counts_kmers <- counts_kmers[!grepl("n", kmer_names)]
@@ -164,7 +160,7 @@ split_and_check_arrays <- function(start, end, sequence, seqID, numID, arrID, ma
       next
     }
 
-    ## Filter kmers ===========================================================================
+    # Filter kmers
     time_report_df <- c(time_report_df, as.numeric(Sys.time())) # start
     kmer_names <- kmer_names[counts_kmers >= global_min_kmers_count]
     counts_kmers <- counts_kmers[counts_kmers >= global_min_kmers_count]
@@ -190,15 +186,14 @@ split_and_check_arrays <- function(start, end, sequence, seqID, numID, arrID, ma
       }
     }
 
-    ## collapse kmers =========================================================================
+    # collapse kmers
     time_report_df <- c(time_report_df, as.numeric(Sys.time())) # fil kmers
     collapsed_kmers <- collapse_kmers(counts_kmers, kmer_names, max_edit, verbose = FALSE)
     for (j in seq_along(collapsed_kmers)) {
       collapsed_kmers[[j]]$locations <- which(kmers_list_local %in% collapsed_kmers[[j]]$kmers) - 1 + arrays$start[i]
     }
     remove(kmers_list_local, counts_kmers, kmer_names)
-    gc()
-    ## calculate distances ====================================================================
+    # calculate distances
     time_report_df <- c(time_report_df, as.numeric(Sys.time())) # col km
     distances <- NULL
     kmer_starts <- NULL
@@ -220,7 +215,7 @@ split_and_check_arrays <- function(start, end, sequence, seqID, numID, arrID, ma
     # add reverse distances
     kmer_starts_2 <- kmer_starts + distances
 
-    ## Find N using kmer distances ============================================================
+    # Find N using kmer distances
     time_report_df <- c(time_report_df, as.numeric(Sys.time())) # cal dist
     window_starts <- genomic_bins_starts(start = arrays$start[i], end = arrays$end[i], bin_size = small_window_step_for_N_count)
 
@@ -239,7 +234,7 @@ split_and_check_arrays <- function(start, end, sequence, seqID, numID, arrID, ma
     window_ends <- window_ends - small_window_step_for_N_count + small_window_for_N_count
     window_ends[window_ends > arrays$end[i]] <- arrays$end[i]
 
-    time_report_df <- c(time_report_df, as.numeric(Sys.time())) #N A
+    time_report_df <- c(time_report_df, as.numeric(Sys.time()))
     #TODO: optimise: This is by far the longest part, over 10% of the single array calculation and is increasing exponentially
 
     moving_top_distance <- vector(length = length(window_starts), mode = "numeric")
@@ -252,12 +247,11 @@ split_and_check_arrays <- function(start, end, sequence, seqID, numID, arrID, ma
       kmer_starts_2 <- kmer_starts_2[!which_distances]
       distances <- distances[!which_distances]
     }
-    time_report_df <- c(time_report_df, as.numeric(Sys.time())) #N B
+    time_report_df <- c(time_report_df, as.numeric(Sys.time()))
     remove(kmer_starts, kmer_starts_2, distances, window_starts, window_ends)
 
     top_N_array <- sort(table(moving_top_distance[moving_top_distance != 0]), decreasing = TRUE)
     remove(moving_top_distance)
-    gc()
     # merge N values that are only 1 bp apart,
     # TODO: consider removing low count N values in case a region contains them all,
     # or limit to top X Ns to be merged only
@@ -294,9 +288,8 @@ split_and_check_arrays <- function(start, end, sequence, seqID, numID, arrID, ma
       arrays$top_N[i] <- floor(mean(top_N_distances))
     }
     remove(top_N_array, count_Ns)
-    gc()
 
-    ## Identify kmers likely forming the repeat ===============================================
+    # Identify kmers likely forming the repeat
     # Use the best kmer and extract up to max_repeats_to_align, align and get consensus
     time_report_df <- c(time_report_df, as.numeric(Sys.time())) #N D
     max_repeats_to_align <- 10
@@ -315,11 +308,10 @@ split_and_check_arrays <- function(start, end, sequence, seqID, numID, arrID, ma
     top_kmer$distances <- top_kmer$distances[top_kmer$distances %in% top_N_distances]
 
     remove(collapsed_kmers, collapsed_kmers_topN_counts, collapsed_kmers_topN_ratio, top_N_distances)
-    gc()
 
     time_report_df <- c(time_report_df, as.numeric(Sys.time())) # identify kmers A
 
-    # TODO: OPTIMISE? this section below is responsible for a big chink of the runtime of this function
+    # TODO: OPTIMISE? this section below is responsible for a big chunk of the runtime of this function
     if(length(top_kmer$distances) > 0) {
       arrays$top_N[i] <- floor(median(top_kmer$distances))
       top_kmer_list <- NULL
@@ -341,14 +333,12 @@ split_and_check_arrays <- function(start, end, sequence, seqID, numID, arrID, ma
                                         sequences = top_kmer_list,
                                         name = paste(seqID, numID, arrID, i, arrays$start[i], runif(1, 0, 1), sep = "_"))
 
-          # TODO: maybe check internal duplication of the representative, to split if needed. Symmetrically (so AA into A) or assumetrically (ABB into A B and B)
+          # TODO: maybe check internal duplication of the representative, to split if needed. Symmetrically (so AA into A) or assymetrically (ABB into A B and B)
           consensus <- consensus_N(alignment, arrays$top_N[i])
           remove(alignment)
-          gc()
         }
         arrays$representative[i] <- consensus
         remove(top_kmer_list, consensus)
-        gc()
       }
     } else {
       arrays$top_N[i] <- 0
@@ -358,12 +348,11 @@ split_and_check_arrays <- function(start, end, sequence, seqID, numID, arrID, ma
     time_report_df <- c(time_report_df, as.numeric(Sys.time()))  # identify kmers B
   }
 
-  ### Prepare the output ==================================================================================
+  # Prepare the output
   arrays$start <- arrays$start + start_fasta_relative - 1
   arrays$end <- arrays$end + start_fasta_relative - 1
   remove(start, end, sequence, seqID, numID, max_repeat, min_repeat, mafft, temp_dir, src_dir, kmers_list, start_fasta_relative,
   end_fasta_relative, window_step, min_windows_comparison_score_to_detach_array, min_windows_comparison_score_to_split_array, array_overlaps,
   global_min_kmers_count, max_edit, small_window_for_N_count, small_window_step_for_N_count, small_window_min_percentage_of_distances)
-  gc()
   return(arrays)
 }
