@@ -18,7 +18,6 @@ handle_gaps <- function(repeat_table, representative_len) {
         }
         repeat_table$gap_to_next[i] = 0
       } else {
-        ## If the element has no neighbours, remove (is either first or the previous one had a gap that's not fixed)
         if(i == 1 || repeat_table$gap_to_next[i - 1] != 0) {
           repeats_to_remove = c(repeats_to_remove, i)
         }

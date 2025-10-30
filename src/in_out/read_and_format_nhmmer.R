@@ -27,11 +27,9 @@ read_and_format_nhmmer <- function(nhmmer_file, seqID, arrayID) { # nolint
   data <- lapply(lines, function(line) {
     strsplit(trimws(line), "\\s+")[[1]]
   })
-  remove(lines)
 
   # Convert the list to a data frame
   nhmmer <- as.data.frame(do.call(rbind, data))
-  remove(data)
 
   if (nrow(nhmmer) == 0) {
     return(data.frame(seqID = vector(mode = "character"),

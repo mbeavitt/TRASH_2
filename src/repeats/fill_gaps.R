@@ -31,11 +31,8 @@ fill_gaps <- function(repeat_table, fasta_content, array_start) {
         repeat_table <- repeat_table[order(repeat_table$start, decreasing = FALSE), ]
         i <- i + 1
       }
-      remove(check_seq_fw, check_seq_rv, score)
     }
-    remove(gap_len)
     i <- i + 1
   }
-  remove(fasta_content)
   return(repeat_table)
 }

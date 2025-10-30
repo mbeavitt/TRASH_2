@@ -26,11 +26,9 @@ shift_and_compare = function(sequence, templates = 0) {
     } else {
       sequence <- paste0("_split_", sequence)
     }
-    remove(scores)
   } else {
     sequence = paste0("_split_", sequence)
   }
   if(!inherits(sequence, "character")) print(paste0("shift_and_compare: sequence is not character"))
-  remove(templates)
   return(sequence)
 }

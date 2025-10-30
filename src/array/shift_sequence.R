@@ -34,7 +34,6 @@ shift_sequence <- function(sequence, k = 3) {
     sequence = strsplit(sequence, split = "")[[1]]
     sequence = paste(c(sequence[shift : length(sequence)], sequence[1 : (shift - 1)]), collapse = "")
   }
-  remove(shift, sequence_rev, kmers, kmers_scores, shifts_scores_rev, shifts_scores_fw, kmers_scores, sequence_fw, string_length)
   return(sequence)
 }
 # sequence = "tttatctggggatattcggtttttccccataggcctcaatgggctcccaaatgtcccttcgcagattctccaaaagagtgtttccaacctgctgaatcaaaagaaaggtttaactctgtgagatgaatccacacatcacaaagcagtttcacagatagcttctttctagtt"

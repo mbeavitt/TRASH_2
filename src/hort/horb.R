@@ -158,9 +158,6 @@ horb <- function(cmd_arguments) {
 
   } else {
     print("No HORs identified")
-    file.remove(hor.output.file)
-    file.remove(file.path(cmd_arguments$output_folder, paste0(alignment_name, "temp.aligned.fasta")))
-    file.remove(paste(cmd_arguments$output_folder, "/", "log_", paste0(alignment_name, "temp.aligned.fasta"), "_t_", threshold_SNV, "_c_", cmd_arguments$hor_min_len, ".txt", sep = ""))
     summary <- data.frame(genomeA = cmd_arguments$genomeA,
                           genomeB = cmd_arguments$genomeB,
                           chrA = cmd_arguments$chrA,
@@ -176,9 +173,6 @@ horb <- function(cmd_arguments) {
   
     return(0)
   }
-  file.remove(hor.output.file)
-  file.remove(file.path(cmd_arguments$output_folder, paste0(alignment_name, "temp.aligned.fasta")))
-  file.remove(paste(cmd_arguments$output_folder, "/", "log_", paste0(alignment_name, "temp.aligned.fasta"), "_t_", threshold_SNV, "_c_", cmd_arguments$hor_min_len, ".txt", sep = ""))
   cat("================================================================================\n")
 
   ### 06 / 00 Calculate bins and adjust starts ==========================================================================

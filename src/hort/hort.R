@@ -139,9 +139,6 @@ hort <- function(cmd_arguments) {
   } else {
     print("Noh HORs identified")
   }
-  file.remove(hor.output.file)
-  file.remove(file.path(cmd_arguments$output_folder, paste0(alignment_name, "temp.aligned.fasta")))
-  file.remove(paste(cmd_arguments$output_folder, "/", "log_", paste0(alignment_name, "temp.aligned.fasta"), "_t_", threshold_SNV, "_c_", cmd_arguments$hor_min_len, ".txt", sep = ""))
   cat("================================================================================\n")
 
   ### 06 / 00 Calculate bins and adjust starts ==========================================================================

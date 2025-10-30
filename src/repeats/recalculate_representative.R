@@ -42,6 +42,5 @@ recalculate_representative <- function(repeats_df, sequence_substring, adjust_st
     repeats_df$representative <- consensus
   }
 
-  remove(alignment, consensus, repeats_seq, strands)
   return(repeats_df)
 }
