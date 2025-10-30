@@ -47,7 +47,6 @@ genomic_bins_starts <- function(start = 1, end = 0, bin_number = 0, bin_size = 0
     }
     start_positions <- start_positions - start_positions[1] + start
     remove(seq_per_bin, remaining_seq, bin_sizes)
-    gc()
     return(start_positions)
   }
   if (bin_size > 0) {
