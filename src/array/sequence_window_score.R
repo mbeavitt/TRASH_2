@@ -6,19 +6,9 @@ sequence_window_score <- function(fasta_sequence, window_size, kmer = 10, output
 
   sequence_full_length <- length(fasta_sequence)
 
-  if(window_size >= sequence_full_length) {
-    starts <- 1
-    ends <- sequence_full_length
-  } else {
-    starts <- genomic_bins_starts(start = 1, end = sequence_full_length, bin_size = window_size)
-    starts <- starts[starts < sequence_full_length]
-    if (length(starts) == 1) {
-      ends <- sequence_full_length
-    } else {
-      ends <- c((starts[2 : length(starts)] - 1), sequence_full_length) + window_size # This makes overlapping windows!
-    }
-    ends[ends > sequence_full_length] <- sequence_full_length
-  }
+  result <- genomic_bins(start = 1, end = sequence_full_length, bin_size = window_size)
+  starts <- result$starts
+  ends <- result$ends
 
   # Divide into chunks
   scores <- NULL

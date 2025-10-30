@@ -15,22 +15,9 @@ merge_windows <- function(list_of_scores, window_size, sequence_full_length) {
                       scores = vector(mode = "numeric")
     ))
   }
-
-  # window definition needs to be propagated from sequence_window_score() funtion
-  sliding_window_distance <- ceiling(window_size / 1) #if 1, it's off, use 4
-  if(sliding_window_distance >= sequence_full_length) {
-    starts <- 1
-    ends <- sequence_full_length
-  } else {
-    starts <- genomic_bins_starts(start = 1, end = sequence_full_length, bin_size = sliding_window_distance)
-    starts <- starts[starts < sequence_full_length]
-    if (length(starts) == 1) {
-      ends <- sequence_full_length
-    } else {
-      ends <- c((starts[2 : length(starts)] - 1), sequence_full_length) + window_size # This makes overlapping windows!
-    }
-    ends[ends > sequence_full_length] <- sequence_full_length
-  }
+  result <- genomic_bins(start = 1, end = sequence_full_length, bin_size = window_size)
+  starts <- result$starts
+  ends <- result$ends
 
   if (length(starts) == 1) {
     repetitive_regions <- data.frame(
