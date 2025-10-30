@@ -2,12 +2,6 @@ merge_windows <- function(list_of_scores, window_size, sequence_full_length) {
   # TODO make the treshold dynamic
   threshold <- 90
 
-  # if(sequence_full_length < window_size) {
-  #   return(data.frame(starts = vector(mode = "numeric"),
-  #                     ends = vector(mode = "numeric"),
-  #                     scores = vector(mode = "numeric")))
-  # }
-
   if (sum(list_of_scores < threshold) == 0) {
     return(data.frame(
                       starts = vector(mode = "numeric"),
